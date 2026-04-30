@@ -1,0 +1,630 @@
+"use client";
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
+import { useCartStore } from "@/hooks/useCartStore";
+import { formatPrice, generateInvoiceNo } from "@/lib/utils";
+import { CartItem } from "@/types";
+import toast from "react-hot-toast";
+import {
+  Search, Trash2, Minus, Plus, Printer, ShoppingCart,
+  ArrowRight, CreditCard, Banknote, Percent, ScanLine,
+  X, Package, Weight
+} from "lucide-react";
+
+interface Product {
+  id: number;
+  name: string;
+  barcode: string | null;
+  price: number;
+  costPrice: number;
+  stock: number;
+  priceType: string;
+  unit: string;
+  category: { name: string };
+}
+
+export default function CashierPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastInvoice, setLastInvoice] = useState<any>(null);
+  const [weightInput, setWeightInput] = useState<{ productId: number; weight: string } | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const barcodeRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const cart = useCartStore();
+
+  useEffect(() => {
+    fetchProducts();
+    barcodeRef.current?.focus();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch("/api/products");
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setProducts(Array.isArray(data) ? data : []);
+    } catch {
+      toast.error("فشل في تحميل المنتجات");
+    }
+  };
+
+  const handleBarcode = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const code = barcodeInput.trim();
+      if (!code) return;
+
+      const product = products.find((p) => p.barcode === code);
+      if (product) {
+        if (product.priceType === "weight") {
+          setWeightInput({ productId: product.id, weight: "" });
+          setBarcodeInput("");
+          return;
+        }
+        addToCart(product, 1);
+        setBarcodeInput("");
+        toast.success(`تم إضافة: ${product.name}`);
+      } else {
+        toast.error("الباركود غير موجود!");
+        setBarcodeInput("");
+      }
+    }
+  }, [barcodeInput, products]);
+
+  const addToCart = (product: Product, quantity: number) => {
+    if (product.stock < quantity) {
+      toast.error("الكمية غير متوفرة في المخزن!");
+      return;
+    }
+
+    const item: CartItem = {
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      quantity,
+      unit: product.unit,
+      priceType: product.priceType,
+      total: product.price * quantity,
+    };
+    cart.addItem(item);
+  };
+
+  const handleWeightSubmit = () => {
+    if (!weightInput) return;
+    const weight = parseFloat(weightInput.weight);
+    if (isNaN(weight) || weight <= 0) {
+      toast.error("وزن غير صحيح");
+      return;
+    }
+
+    const product = products.find((p) => p.id === weightInput.productId);
+    if (product) {
+      addToCart(product, weight);
+      toast.success(`تم إضافة ${weight} كجم من ${product.name}`);
+    }
+    setWeightInput(null);
+    barcodeRef.current?.focus();
+  };
+
+  const categories = ["all", ...Array.from(new Set(products.map((p) => p.category?.name || "غير مصنف")))];
+
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.barcode?.includes(searchQuery);
+    const matchesCategory = selectedCategory === "all" || (p.category?.name || "غير مصنف") === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleCheckout = async () => {
+    if (cart.items.length === 0) {
+      toast.error("السلة فارغة!");
+      return;
+    }
+
+    setIsLoading(true);
+    const invoiceData = {
+      invoiceNo: generateInvoiceNo(),
+      userId: 1,
+      total: cart.getTotal(),
+      discount: cart.discount,
+      finalTotal: cart.getFinalTotal(),
+      paymentType: cart.paymentType,
+      items: cart.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.total,
+      })),
+    };
+
+    try {
+      const res = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invoiceData),
+      });
+
+      if (res.ok) {
+        const invoice = await res.json();
+        setLastInvoice(invoice);
+        setShowCheckout(false);
+        setShowReceipt(true);
+        cart.clearCart();
+        fetchProducts();
+        toast.success("تم إتمام البيع بنجاح!");
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "فشل في حفظ الفاتورة");
+      }
+    } catch {
+      toast.error("خطأ في الاتصال بالسيرفر");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const printReceipt = () => window.print();
+
+  useEffect(() => {
+    let barcodeString = "";
+    let timeout: NodeJS.Timeout;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Hotkeys
+      if (e.key === "F2") { e.preventDefault(); barcodeRef.current?.focus(); return; }
+      if (e.key === "F3") { e.preventDefault(); searchRef.current?.focus(); return; }
+      if (e.key === "F4" && cart.items.length > 0) { e.preventDefault(); setShowCheckout(true); return; }
+
+      // Global Barcode Scanner Logic
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+      
+      // If they type manually in the barcode input, let the input's own handleBarcode take care of it
+      if (isInput && target === barcodeRef.current) return;
+
+      if (e.key === 'Enter') {
+        if (barcodeString.length >= 3) {
+          e.preventDefault();
+          const code = barcodeString;
+          const product = products.find((p) => p.barcode === code);
+          if (product) {
+            if (product.priceType === "weight") {
+              setWeightInput({ productId: product.id, weight: "" });
+            } else {
+              if (product.stock >= 1) {
+                cart.addItem({
+                  productId: product.id, name: product.name, price: product.price,
+                  quantity: 1, unit: product.unit, priceType: product.priceType, total: product.price,
+                });
+                toast.success(`تم إضافة: ${product.name}`);
+              } else {
+                toast.error("الكمية غير متوفرة!");
+              }
+            }
+          } else if (!isInput) {
+            toast.error("الباركود غير موجود!");
+          }
+        }
+        barcodeString = "";
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        barcodeString += e.key;
+        clearTimeout(timeout);
+        // Scanners type very fast (usually < 20ms per char). Reset if slow (human typing).
+        timeout = setTimeout(() => { barcodeString = ""; }, 60);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(timeout);
+    };
+  }, [products, cart]);
+
+  return (
+    <div className="h-screen bg-[#f8fafc] flex flex-col animate-fade-in text-slate-800">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between no-print shadow-sm z-10">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
+            <ArrowRight className="w-6 h-6" />
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <ShoppingCart className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">كاشير البيع</h1>
+              <p className="text-sm text-slate-500 font-medium">أبناء سوهاج</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {["F2 باركود", "F3 بحث", "F4 دفع"].map((k) => (
+            <span key={k} className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600">
+              {k}
+            </span>
+          ))}
+        </div>
+      </header>
+
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 p-6 overflow-hidden">
+        {/* Left: Products */}
+        <div className="flex-1 flex flex-col gap-5 min-w-0 no-print overflow-hidden">
+          <div className="flex gap-4">
+            {/* Barcode */}
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex-1">
+              <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                <ScanLine className="w-4 h-4 text-blue-500" />
+                مسح الباركود
+              </label>
+              <input
+                ref={barcodeRef}
+                type="text"
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value)}
+                onKeyDown={handleBarcode}
+                placeholder="امسح الباركود هنا..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                autoFocus
+              />
+            </div>
+
+            {/* Search */}
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex-1">
+              <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                <Search className="w-4 h-4 text-blue-500" />
+                بحث بالاسم
+              </label>
+              <input
+                ref={searchRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ابحث عن منتج..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Category Filter */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shadow-sm border ${
+                  selectedCategory === cat
+                    ? "bg-blue-600 text-white border-blue-600 shadow-[0_4px_14px_0_rgba(37,99,235,0.39)]"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                }`}
+              >
+                {cat === "all" ? "الكل" : cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Products Grid */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex-1 overflow-auto p-5">
+            <div className="flex items-center gap-2 mb-4 text-slate-500">
+              <Package className="w-5 h-5 text-blue-500" />
+              <span className="font-bold">المنتجات المتاحة ({filteredProducts.length})</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
+              {filteredProducts.map((product) => (
+                <button
+                  key={product.id}
+                  onClick={() => {
+                    if (product.priceType === "weight") {
+                      setWeightInput({ productId: product.id, weight: "" });
+                    } else {
+                      addToCart(product, 1);
+                    }
+                  }}
+                  className={`p-4 rounded-2xl border-2 text-right transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 ${
+                    product.stock <= product.minStock
+                      ? "border-rose-100 bg-rose-50/30 hover:border-rose-300"
+                      : "border-slate-100 bg-white hover:border-blue-500/40"
+                  }`}
+                >
+                  <div className="font-bold text-[15px] text-slate-900 truncate mb-1.5">{product.name}</div>
+                  <div className="text-blue-600 font-black text-lg">
+                    {formatPrice(product.price)}
+                    <span className="text-xs text-slate-400 font-medium mr-1">/{product.unit}</span>
+                  </div>
+                  <div className="text-xs text-slate-500 mt-2 font-medium">
+                    مخزون: <span className={product.stock <= product.minStock ? "text-rose-500 font-bold" : "text-emerald-600 font-bold"}>
+                      {product.stock} {product.unit}
+                    </span>
+                  </div>
+                  {product.priceType === "weight" && (
+                    <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded-lg mt-2">
+                      <Weight className="w-3.5 h-3.5" />
+                      يوزن
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-16 text-slate-400">
+                <Package className="w-16 h-16 mx-auto mb-3 opacity-20" />
+                <p className="font-bold text-lg">لا توجد منتجات</p>
+                <p className="text-sm">لم يتم العثور على أي منتج يطابق بحثك</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Cart */}
+        <div className="w-full lg:w-[450px] flex flex-col gap-4">
+          <div className="bg-white rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-200 flex-1 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <ShoppingCart className="w-5 h-5 text-blue-600" />
+                </div>
+                <span className="font-bold text-xl text-slate-900">سلة المشتريات</span>
+              </div>
+              <span className="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                {cart.items.length} صنف
+              </span>
+            </div>
+
+            <div className="flex-1 overflow-auto space-y-3 mb-4 pr-2">
+              {cart.items.length === 0 ? (
+                <div className="text-center text-slate-400 py-20">
+                  <ShoppingCart className="w-20 h-20 mx-auto mb-4 opacity-10 text-blue-900" />
+                  <p className="font-bold text-lg text-slate-500">السلة فارغة</p>
+                  <p className="text-sm mt-1 text-slate-400">امسح الباركود أو اختر منتج للإضافة</p>
+                </div>
+              ) : (
+                cart.items.map((item) => (
+                  <div
+                    key={item.productId}
+                    className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between group hover:border-blue-300 transition-colors shadow-sm"
+                  >
+                    <div className="flex-1 min-w-0 pl-3">
+                      <div className="font-bold text-[15px] text-slate-900 truncate">{item.name}</div>
+                      <div className="text-sm font-bold text-blue-600 mt-1">
+                        {formatPrice(item.price)} <span className="text-xs text-slate-400 font-medium ml-1">× {item.quantity} {item.unit}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl p-1.5 border border-slate-200">
+                      <button
+                        onClick={() => cart.updateQuantity(item.productId, item.quantity - 1)}
+                        className="w-9 h-9 rounded-lg bg-white shadow-sm border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center justify-center transition-colors"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="w-12 text-center font-black text-[15px] text-slate-900">{item.quantity}</span>
+                      <button
+                        onClick={() => cart.updateQuantity(item.productId, item.quantity + 1)}
+                        className="w-9 h-9 rounded-lg bg-white shadow-sm border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center justify-center transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                      <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                      <button
+                        onClick={() => cart.removeItem(item.productId)}
+                        className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Totals */}
+            <div className="border-t border-slate-200 pt-5 space-y-4">
+              <div className="flex justify-between text-[15px] font-bold">
+                <span className="text-slate-500">المجموع:</span>
+                <span className="text-slate-900">{formatPrice(cart.getTotal())}</span>
+              </div>
+              <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                  <Percent className="w-4 h-4 text-slate-500" />
+                </div>
+                <input
+                  type="number"
+                  value={cart.discount}
+                  onChange={(e) => cart.setDiscount(Number(e.target.value))}
+                  placeholder="أضف خصم..."
+                  className="bg-transparent border-none outline-none text-slate-900 font-bold flex-1"
+                />
+                <span className="text-sm font-bold text-slate-500 pl-2">ج.م</span>
+              </div>
+              <div className="flex justify-between text-2xl font-black bg-blue-50 p-4 rounded-2xl border border-blue-200 text-blue-700">
+                <span>الإجمالي:</span>
+                <span>{formatPrice(cart.getFinalTotal())}</span>
+              </div>
+
+              <button
+                onClick={() => setShowCheckout(true)}
+                disabled={cart.items.length === 0 || isLoading}
+                className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed rounded-2xl font-bold text-white transition-all shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] flex items-center justify-center gap-3 text-lg"
+              >
+                {isLoading ? (
+                  <span className="animate-spin text-2xl">⟳</span>
+                ) : (
+                  <CreditCard className="w-6 h-6" />
+                )}
+                {isLoading ? "جاري الحفظ..." : "إتمام البيع (F4)"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Weight Input Modal */}
+      {weightInput && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 no-print backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl">
+            <h3 className="font-bold text-lg text-gray-900 mb-2">إدخال الوزن</h3>
+            <p className="text-gray-500 mb-4">
+              {products.find((p) => p.id === weightInput.productId)?.name}
+            </p>
+            <input
+              type="number"
+              step="0.001"
+              value={weightInput.weight}
+              onChange={(e) => setWeightInput({ ...weightInput, weight: e.target.value })}
+              onKeyDown={(e) => e.key === "Enter" && handleWeightSubmit()}
+              placeholder="أدخل الوزن بالكيلو..."
+              className="input text-lg mb-4"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button onClick={handleWeightSubmit} className="flex-1 btn-success py-3">
+                تأكيد
+              </button>
+              <button
+                onClick={() => { setWeightInput(null); barcodeRef.current?.focus(); }}
+                className="flex-1 btn-secondary py-3"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Modal */}
+      {showCheckout && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 no-print backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+            <h3 className="font-bold text-xl text-gray-900 mb-6">تأكيد الدفع</h3>
+
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-500">المجموع:</span>
+                <span className="font-bold text-gray-900">{formatPrice(cart.getTotal())}</span>
+              </div>
+              <div className="flex justify-between p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-500">الخصم:</span>
+                <span className="font-bold text-red-500">-{formatPrice(cart.discount)}</span>
+              </div>
+              <div className="flex justify-between p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                <span className="font-bold text-blue-700">الإجمالي:</span>
+                <span className="font-bold text-xl text-blue-700">{formatPrice(cart.getFinalTotal())}</span>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="label">طريقة الدفع</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => cart.setPaymentType("cash")}
+                  className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
+                    cart.paymentType === "cash"
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                      : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  <Banknote className="w-5 h-5" />
+                  كاش
+                </button>
+                <button
+                  onClick={() => cart.setPaymentType("card")}
+                  className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
+                    cart.paymentType === "card"
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  <CreditCard className="w-5 h-5" />
+                  فيزا
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleCheckout}
+                disabled={isLoading}
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 rounded-xl font-bold text-white transition-colors shadow-lg flex items-center justify-center gap-2"
+              >
+                {isLoading ? <span className="animate-spin">⟳</span> : <Printer className="w-5 h-5" />}
+                {isLoading ? "جاري الحفظ..." : "تأكيد وطباعة"}
+              </button>
+              <button
+                onClick={() => setShowCheckout(false)}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium text-gray-700 transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt */}
+      {showReceipt && lastInvoice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 max-h-[90vh] overflow-auto shadow-2xl">
+            <div className="text-center mb-4 border-b-2 border-dashed border-gray-200 pb-4">
+              <h2 className="text-2xl font-black text-gray-900">أبناء سوهاج</h2>
+              <p className="text-sm text-gray-500 mt-1">فاتورة مبيعات</p>
+              <p className="text-xs text-gray-400 font-mono">{lastInvoice.invoiceNo}</p>
+              <p className="text-xs text-gray-400">
+                {new Date(lastInvoice.createdAt).toLocaleString("ar-EG")}
+              </p>
+            </div>
+
+            <div className="space-y-2 mb-4 text-sm">
+              {lastInvoice.items.map((item: any) => (
+                <div key={item.id} className="flex justify-between">
+                  <span className="text-gray-700">{item.product.name} × {item.quantity}</span>
+                  <span className="font-medium text-gray-900">{formatPrice(item.total)}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t-2 border-dashed border-gray-200 pt-3 space-y-1 text-sm">
+              <div className="flex justify-between text-gray-600">
+                <span>المجموع:</span>
+                <span>{formatPrice(lastInvoice.total)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>الخصم:</span>
+                <span>{formatPrice(lastInvoice.discount)}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold text-gray-900 border-t border-gray-100 pt-2 mt-2">
+                <span>الإجمالي:</span>
+                <span>{formatPrice(lastInvoice.finalTotal)}</span>
+              </div>
+              <div className="flex justify-between text-gray-400 text-xs">
+                <span>الدفع:</span>
+                <span>{lastInvoice.paymentType === "cash" ? "كاش" : "فيزا"}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 text-center text-xs text-gray-400 border-t border-gray-100 pt-4">
+              شكراً لتعاملكم مع أبناء سوهاج
+            </div>
+
+            <div className="flex gap-2 mt-4 no-print">
+              <button onClick={printReceipt} className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors">
+                <Printer className="w-4 h-4" />
+                طباعة
+              </button>
+              <button
+                onClick={() => { setShowReceipt(false); barcodeRef.current?.focus(); }}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                فاتورة جديدة
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
