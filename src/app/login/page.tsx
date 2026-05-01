@@ -142,15 +142,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Hint */}
-        <div className="mt-6 text-center bg-white/60 backdrop-blur-md border border-slate-100 rounded-2xl p-4 shadow-sm">
-          <p className="text-[13px] font-bold text-slate-400 mb-2">بيانات الدخول الافتراضية:</p>
-          <div className="flex justify-center gap-6 text-[13px]">
-            <span className="font-mono font-black text-slate-700">admin / <span className="text-blue-600">102030</span></span>
-          </div>
-        </div>
-
-        <p className="text-center text-sm text-slate-400 mt-6 font-medium">
+        <p className="text-center text-sm text-slate-400 mt-8 font-medium">
           نظام أبناء سوهاج &copy; {new Date().getFullYear()}
         </p>
       </div>

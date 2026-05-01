@@ -6,11 +6,43 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { ShoppingCart, Package, BarChart3, Users, Store, ChevronLeft, LogOut } from "lucide-react";
 
-const modules = [
-  { title: "الكاشير", desc: "إتمام عمليات البيع وإصدار الفواتير", icon: ShoppingCart, href: "/cashier", bg: "from-blue-600 to-blue-700", shadow: "shadow-blue-500/30" },
-  { title: "المخزن", desc: "إدارة المنتجات والأقسام والمخزون", icon: Package, href: "/inventory", bg: "from-emerald-500 to-teal-600", shadow: "shadow-emerald-500/30" },
-  { title: "التقارير", desc: "تقارير المبيعات والأرباح والتحليلات", icon: BarChart3, href: "/reports", bg: "from-amber-500 to-orange-500", shadow: "shadow-amber-500/30" },
-  { title: "الإعدادات", desc: "إدارة المستخدمين والصلاحيات", icon: Users, href: "/users", bg: "from-rose-500 to-pink-600", shadow: "shadow-rose-500/30" },
+const ALL_MODULES = [
+  {
+    title: "الكاشير",
+    desc: "إتمام عمليات البيع وإصدار الفواتير",
+    icon: ShoppingCart,
+    href: "/cashier",
+    bg: "from-blue-600 to-blue-700",
+    shadow: "shadow-blue-500/30",
+    roles: ["admin", "manager", "cashier"],
+  },
+  {
+    title: "المخزن",
+    desc: "إدارة المنتجات والأقسام والمخزون",
+    icon: Package,
+    href: "/inventory",
+    bg: "from-emerald-500 to-teal-600",
+    shadow: "shadow-emerald-500/30",
+    roles: ["admin", "manager"],
+  },
+  {
+    title: "التقارير",
+    desc: "تقارير المبيعات والأرباح والتحليلات",
+    icon: BarChart3,
+    href: "/reports",
+    bg: "from-amber-500 to-orange-500",
+    shadow: "shadow-amber-500/30",
+    roles: ["admin", "manager"],
+  },
+  {
+    title: "الإعدادات",
+    desc: "إدارة المستخدمين والصلاحيات",
+    icon: Users,
+    href: "/users",
+    bg: "from-rose-500 to-pink-600",
+    shadow: "shadow-rose-500/30",
+    roles: ["admin"],
+  },
 ];
 
 const roleLabel: Record<string, string> = {
@@ -36,6 +68,11 @@ export default function Home() {
       </div>
     );
   }
+
+  // Filter modules based on user role
+  const visibleModules = ALL_MODULES.filter(
+    (m) => user && m.roles.includes(user.role)
+  );
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans flex items-center justify-center p-6 relative overflow-hidden">
@@ -76,8 +113,8 @@ export default function Home() {
         </div>
 
         {/* Modules Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {modules.map((mod) => (
+        <div className={`grid gap-5 ${visibleModules.length === 1 ? "grid-cols-1 max-w-sm mx-auto" : "grid-cols-1 sm:grid-cols-2"}`}>
+          {visibleModules.map((mod) => (
             <Link key={mod.href} href={mod.href} className="group outline-none">
               <div className="bg-white/80 backdrop-blur-xl rounded-[1.75rem] p-6 border border-white shadow-[0_4px_20px_rgb(0,0,0,0.04)] hover:shadow-2xl hover:shadow-slate-200/60 transition-all duration-300 hover:-translate-y-2 flex items-center gap-5">
                 <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${mod.bg} shadow-lg ${mod.shadow} flex items-center justify-center shrink-0 group-hover:scale-110 group-active:scale-95 transition-transform duration-300`}>

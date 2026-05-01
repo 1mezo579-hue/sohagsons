@@ -33,7 +33,7 @@ interface Category {
 }
 
 export default function InventoryPage() {
-  const { user, isChecked } = useRequireAuth();
+  const { user, isChecked } = useRequireAuth(["admin", "manager"]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState("");

@@ -58,7 +58,7 @@ const permissions = {
 };
 
 export default function UsersPage() {
-  const { user, isChecked } = useRequireAuth();
+  const { user, isChecked } = useRequireAuth(["admin"]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);

@@ -36,7 +36,7 @@ interface Invoice {
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4"];
 
 export default function ReportsPage() {
-  const { user, isChecked } = useRequireAuth();
+  const { user, isChecked } = useRequireAuth(["admin", "manager"]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [dateRange, setDateRange] = useState<"today" | "week" | "month" | "custom">("today");
   const [customFrom, setCustomFrom] = useState(new Date().toISOString().split("T")[0]);
