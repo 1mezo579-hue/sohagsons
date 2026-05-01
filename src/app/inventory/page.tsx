@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import { formatPrice } from "@/lib/utils";
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
@@ -32,9 +34,24 @@ interface Category {
 }
 
 export default function InventoryPage() {
+  const router = useRouter();
+  const { user, isLoggedIn, loadFromStorage } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  useEffect(() => {
+    loadFromStorage();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn && typeof window !== "undefined") {
+      const saved = localStorage.getItem("pos_user");
+      if (!saved) {
+        router.push("/login");
+      }
+    }
+  }, [isLoggedIn, router]);
+
   const [activeTab, setActiveTab] = useState<"products" | "stock" | "categories">("products");
   
   // Modals state
@@ -263,6 +280,11 @@ export default function InventoryPage() {
           </button>
           
           <div className="w-px h-8 bg-slate-200 mx-1"></div>
+
+          <div className="flex flex-col items-end px-2">
+            <span className="text-sm font-black text-slate-900">{user?.name}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">المشرف</span>
+          </div>
           
           <button onClick={handleDeleteAll} className="flex items-center gap-2 px-5 py-2.5 bg-rose-50 border-2 border-rose-200 text-rose-700 hover:bg-rose-600 hover:text-white rounded-2xl transition-all shadow-sm font-bold hover:-translate-y-1 group">
             <Trash className="w-5 h-5 group-hover:animate-bounce" />

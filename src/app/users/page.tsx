@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import toast from "react-hot-toast";
 import {
   ArrowRight, Plus, Users, Shield, UserCog, Trash2,
@@ -56,6 +58,8 @@ const permissions = {
 };
 
 export default function UsersPage() {
+  const router = useRouter();
+  const { user, isLoggedIn, loadFromStorage } = useAuthStore();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
@@ -66,7 +70,19 @@ export default function UsersPage() {
     role: "cashier" as "admin" | "cashier" | "manager",
   });
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => {
+    loadFromStorage();
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn && typeof window !== "undefined") {
+      const saved = localStorage.getItem("pos_user");
+      if (!saved) {
+        router.push("/login");
+      }
+    }
+  }, [isLoggedIn, router]);
 
   const fetchUsers = async () => {
     try {
@@ -161,17 +177,23 @@ export default function UsersPage() {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => {
-            setEditingUser(null);
-            resetForm();
-            setShowForm(true);
-          }}
-          className="flex items-center gap-2 px-5 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-all shadow-[0_4px_14px_0_rgba(225,29,72,0.39)] hover:-translate-y-0.5 text-[15px] font-bold"
-        >
-          <Plus className="w-5 h-5" />
-          مستخدم جديد
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex flex-col items-end px-2">
+            <span className="text-sm font-bold text-slate-900">{user?.name}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user?.role === "admin" ? "مدير" : "كاشير"}</span>
+          </div>
+          <button
+            onClick={() => {
+              setEditingUser(null);
+              resetForm();
+              setShowForm(true);
+            }}
+            className="flex items-center gap-2 px-5 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-all shadow-[0_4px_14px_0_rgba(225,29,72,0.39)] hover:-translate-y-0.5 text-[15px] font-bold"
+          >
+            <Plus className="w-5 h-5" />
+            مستخدم جديد
+          </button>
+        </div>
       </header>
 
       <div className="p-6 max-w-7xl mx-auto space-y-8 animate-fade-in">

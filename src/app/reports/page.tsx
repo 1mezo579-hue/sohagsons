@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import { formatPrice, formatDate } from "@/lib/utils";
 import {
   ArrowRight, TrendingUp, TrendingDown, Calendar,
@@ -35,13 +37,27 @@ interface Invoice {
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4"];
 
 export default function ReportsPage() {
+  const router = useRouter();
+  const { user, isLoggedIn, loadFromStorage } = useAuthStore();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [dateRange, setDateRange] = useState<"today" | "week" | "month" | "custom">("today");
   const [customFrom, setCustomFrom] = useState(new Date().toISOString().split("T")[0]);
   const [customTo, setCustomTo] = useState(new Date().toISOString().split("T")[0]);
   const [activeView, setActiveView] = useState<"overview" | "invoices" | "products" | "analytics">("overview");
 
-  useEffect(() => { fetchInvoices(); }, []);
+  useEffect(() => {
+    loadFromStorage();
+    fetchInvoices();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn && typeof window !== "undefined") {
+      const saved = localStorage.getItem("pos_user");
+      if (!saved) {
+        router.push("/login");
+      }
+    }
+  }, [isLoggedIn, router]);
 
   const fetchInvoices = async () => {
     try {
@@ -162,21 +178,28 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Date Filter */}
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 shadow-sm">
-          {(["today", "week", "month", "custom"] as const).map((range) => (
-            <button
-              key={range}
-              onClick={() => setDateRange(range)}
-              className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                dateRange === range
-                  ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-              }`}
-            >
-              {dateLabel[range]}
-            </button>
-          ))}
+        {/* Date Filter & User */}
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex flex-col items-end px-2">
+            <span className="text-sm font-bold text-slate-900">{user?.name}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user?.role === "admin" ? "مدير" : "كاشير"}</span>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 shadow-sm">
+            {(["today", "week", "month", "custom"] as const).map((range) => (
+              <button
+                key={range}
+                onClick={() => setDateRange(range)}
+                className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                  dateRange === range
+                    ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                {dateLabel[range]}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 

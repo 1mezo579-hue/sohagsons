@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import { useCartStore } from "@/hooks/useCartStore";
 import { formatPrice, generateInvoiceNo } from "@/lib/utils";
 import { CartItem } from "@/types";
@@ -25,6 +27,8 @@ interface Product {
 }
 
 export default function CashierPage() {
+  const router = useRouter();
+  const { isLoggedIn, loadFromStorage } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -40,9 +44,19 @@ export default function CashierPage() {
   const cart = useCartStore();
 
   useEffect(() => {
+    loadFromStorage();
     fetchProducts();
     barcodeRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn && typeof window !== "undefined") {
+      const saved = localStorage.getItem("pos_user");
+      if (!saved) {
+        router.push("/login");
+      }
+    }
+  }, [isLoggedIn, router]);
 
   const fetchProducts = async () => {
     try {
@@ -129,7 +143,7 @@ export default function CashierPage() {
     setIsLoading(true);
     const invoiceData = {
       invoiceNo: generateInvoiceNo(),
-      userId: 1,
+      userId: user?.id || 1,
       total: cart.getTotal(),
       discount: cart.discount,
       finalTotal: cart.getFinalTotal(),
@@ -244,12 +258,18 @@ export default function CashierPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {["F2 باركود", "F3 بحث", "F4 دفع"].map((k) => (
-            <span key={k} className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600">
-              {k}
-            </span>
-          ))}
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex flex-col items-end">
+            <span className="text-sm font-bold text-slate-900">{user?.name}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user?.role === "admin" ? "مدير" : "كاشير"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {["F2 باركود", "F3 بحث", "F4 دفع"].map((k) => (
+              <span key={k} className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600">
+                {k}
+              </span>
+            ))}
+          </div>
         </div>
       </header>
 
