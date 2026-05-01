@@ -761,9 +761,6 @@ export default function CashierPage() {
 
             <div className="mt-6 text-center text-xs text-gray-400 border-t border-gray-100 pt-4">
               شكراً لتعاملكم مع ماركت أبناء سوهاج
-              <div className="mt-1.5 font-sans text-[10px] text-gray-500">
-                جميع الحقوق محفوظة Design House Alex™
-              </div>
             </div>
 
             <div className="flex gap-2 mt-4 no-print">

@@ -657,9 +657,6 @@ export default function ReportsPage() {
                   <div className="text-xl font-black text-blue-700">{formatPrice(selectedInvoice.finalTotal)}</div>
                 </div>
               </div>
-              <div className="mt-4 text-center font-sans text-[10px] text-slate-400 print:block hidden">
-                جميع الحقوق محفوظة Design House Alex™
-              </div>
             </div>
           </div>
         </div>

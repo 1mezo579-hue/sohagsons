@@ -157,8 +157,8 @@ export default function Home() {
           ))}
         </div>
 
-        <p className="text-center text-xs text-slate-300 mt-8 font-medium">
-          نظام أبناء سوهاج &copy; {new Date().getFullYear()}
+        <p className="text-center text-xs text-slate-400 mt-8 font-bold">
+          جميع الحقوق محفوظة Design House Alex™ &copy; {new Date().getFullYear()}
         </p>
       </div>
     </main>
