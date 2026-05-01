@@ -95,6 +95,7 @@ model Customer {
   address    String?
   points     Float     @default(0)
   totalSpent Float     @default(0)
+  balance    Float     @default(0) // الرصيد الآجل المستحق على العميل
   notes      String?
   createdAt  DateTime  @default(now())
   invoices   Invoice[]

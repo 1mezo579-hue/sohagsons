@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import toast from "react-hot-toast";
-import { ArrowRight, Plus, Truck, Users, Star, Phone, Search, Trash2, Edit2, X, Save } from "lucide-react";
+import { ArrowRight, Plus, Truck, Users, Star, Phone, Search, Trash2, Edit2, X, Save, Clock, Banknote, Check } from "lucide-react";
+import { formatPrice } from "@/lib/utils";
 
 interface Customer {
   id: number;
@@ -13,6 +14,7 @@ interface Customer {
   address: string | null;
   points: number;
   totalSpent: number;
+  balance: number;
   notes: string | null;
 }
 
@@ -23,6 +25,9 @@ export default function CustomersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [form, setForm] = useState({ name: "", phone: "", address: "", notes: "" });
+
+  const [showPayModal, setShowPayModal] = useState<Customer | null>(null);
+  const [payAmount, setPayAmount] = useState("");
 
   useEffect(() => {
     fetchCustomers();
@@ -68,6 +73,27 @@ export default function CustomersPage() {
       toast.success("تم الحذف");
       fetchCustomers();
     } catch { toast.error("فشل الحذف"); }
+  };
+
+  const handlePay = async () => {
+    if (!showPayModal) return;
+    const amount = parseFloat(payAmount);
+    if (!amount || amount <= 0) return toast.error("أدخل مبلغ صحيح");
+    
+    try {
+      const res = await fetch(`/api/customers/${showPayModal.id}/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("تم سداد المبلغ بنجاح");
+      setShowPayModal(null);
+      setPayAmount("");
+      fetchCustomers();
+    } catch {
+      toast.error("فشل في عملية السداد");
+    }
   };
 
   const openForm = (c?: Customer) => {
@@ -142,6 +168,15 @@ export default function CustomersPage() {
               </div>
               
               <div className="space-y-3">
+                {c.balance > 0 && (
+                  <div className="bg-rose-50 rounded-xl p-3 flex justify-between items-center border border-rose-100 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-rose-600" />
+                      <span className="text-sm font-bold text-rose-900">عليه آجل (شكك)</span>
+                    </div>
+                    <span className="font-black text-rose-600">{formatPrice(c.balance)}</span>
+                  </div>
+                )}
                 <div className="bg-indigo-50 rounded-xl p-3 flex justify-between items-center border border-indigo-100">
                   <span className="text-sm font-bold text-indigo-900">النقاط المكتسبة</span>
                   <div className="flex items-center gap-1 text-amber-500 font-black">
@@ -151,6 +186,12 @@ export default function CustomersPage() {
                 <div className="text-sm text-slate-600">
                   <span className="font-bold">العنوان:</span> {c.address || "غير مسجل"}
                 </div>
+                
+                {c.balance > 0 && (
+                  <button onClick={() => setShowPayModal(c)} className="w-full mt-2 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors">
+                    <Banknote className="w-4 h-4" /> سداد دفعة من الحساب
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -186,6 +227,38 @@ export default function CustomersPage() {
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
               <button onClick={handleSave} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-colors flex justify-center items-center gap-2"><Save className="w-5 h-5" /> حفظ البيانات</button>
               <button onClick={() => setShowForm(false)} className="px-6 bg-white border border-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showPayModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-fade-in">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-rose-50">
+              <div>
+                <h2 className="text-xl font-bold text-rose-900">سداد مديونية العميل</h2>
+                <p className="text-sm text-rose-700 mt-1">{showPayModal.name}</p>
+              </div>
+              <button onClick={() => setShowPayModal(null)} className="p-2 text-rose-400 hover:bg-white rounded-full"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-4 text-center">
+              <div className="text-sm font-bold text-slate-500">المديونية الحالية</div>
+              <div className="text-3xl font-black text-rose-600 mb-4">{formatPrice(showPayModal.balance)}</div>
+              
+              <div className="text-right">
+                <label className="block text-sm font-bold text-slate-700 mb-2">المبلغ المراد سداده الآن</label>
+                <input 
+                  type="number" 
+                  value={payAmount} 
+                  onChange={e => setPayAmount(e.target.value)} 
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-2xl font-black focus:ring-2 focus:ring-rose-500 outline-none text-left" 
+                  dir="ltr"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
+              <button onClick={handlePay} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl font-bold transition-colors flex justify-center items-center gap-2"><Check className="w-5 h-5" /> تأكيد السداد</button>
             </div>
           </div>
         </div>

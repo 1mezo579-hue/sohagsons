@@ -48,7 +48,7 @@ export async function POST(req: Request) {
             }))
           }
         },
-        include: { items: true, customer: true }
+        include: { items: { include: { product: true } }, customer: true }
       });
 
       // 2. Decrease Stock and Add Logs
@@ -77,7 +77,8 @@ export async function POST(req: Request) {
           where: { id: customerId },
           data: {
             points: { increment: pointsEarned },
-            totalSpent: { increment: finalTotal }
+            totalSpent: { increment: finalTotal },
+            balance: paymentType === "credit" ? { increment: finalTotal } : undefined
           }
         });
       }
@@ -88,6 +89,6 @@ export async function POST(req: Request) {
     return NextResponse.json(invoice, { status: 201 });
   } catch (e: any) {
     console.error("Invoice error:", e);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }
 }

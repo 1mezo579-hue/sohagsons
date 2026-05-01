@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import {
   Search, Trash2, Minus, Plus, Printer, ShoppingCart,
   ArrowRight, CreditCard, Banknote, Percent, ScanLine,
-  X, Package, Weight
+  X, Package, Weight, Clock
 } from "lucide-react";
 
 interface Product {
@@ -136,9 +136,10 @@ export default function CashierPage() {
   });
 
   const handleCheckout = async () => {
-    if (cart.items.length === 0) {
-      toast.error("السلة فارغة!");
-      return;
+    if (cart.items.length === 0) return toast.error("السلة فارغة!");
+    
+    if (cart.paymentType === "credit" && !selectedCustomer) {
+      return toast.error("يجب اختيار اسم العميل لتسجيل الفاتورة كـ آجل (شكك)");
     }
 
     setIsLoading(true);
@@ -568,10 +569,10 @@ export default function CashierPage() {
 
             <div className="mb-4">
               <label className="label">طريقة الدفع</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => cart.setPaymentType("cash")}
-                  className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
+                  className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
                     cart.paymentType === "cash"
                       ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                       : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
@@ -582,7 +583,7 @@ export default function CashierPage() {
                 </button>
                 <button
                   onClick={() => cart.setPaymentType("card")}
-                  className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
+                  className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
                     cart.paymentType === "card"
                       ? "border-blue-500 bg-blue-50 text-blue-700"
                       : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
@@ -590,6 +591,17 @@ export default function CashierPage() {
                 >
                   <CreditCard className="w-5 h-5" />
                   فيزا
+                </button>
+                <button
+                  onClick={() => cart.setPaymentType("credit")}
+                  className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
+                    cart.paymentType === "credit"
+                      ? "border-rose-500 bg-rose-50 text-rose-700"
+                      : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  <Clock className="w-5 h-5" />
+                  آجل (شكك)
                 </button>
               </div>
             </div>
