@@ -11,14 +11,14 @@ async function main() {
 
   const users = [
     { username: "admin", password: hashedPassword, role: "admin", name: "محمد حمدى (Owner)" },
-    { username: "manager", password: managerPassword, role: "manager", name: "أحمد (مدير)" },
+    { username: "manager", password: managerPassword, role: "manager", name: "المدير العام" },
     { username: "cashier1", password: cashierPassword, role: "cashier", name: "كاشير 1" },
   ];
 
   for (const u of users) {
     await prisma.user.upsert({
       where: { username: u.username },
-      update: {},
+      update: { name: u.name },
       create: u,
     });
   }
