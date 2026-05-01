@@ -7,7 +7,7 @@ import { formatPrice, formatDate } from "@/lib/utils";
 import {
   ArrowRight, TrendingUp, TrendingDown, Calendar,
   DollarSign, Package, ShoppingCart, Users, Clock,
-  BarChart3, PieChart, Activity, Layers
+  BarChart3, PieChart, Activity, Layers, Eye, X
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -42,6 +42,7 @@ export default function ReportsPage() {
   const [customFrom, setCustomFrom] = useState(new Date().toISOString().split("T")[0]);
   const [customTo, setCustomTo] = useState(new Date().toISOString().split("T")[0]);
   const [activeView, setActiveView] = useState<"overview" | "invoices" | "products" | "analytics">("overview");
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
     fetchInvoices();
@@ -433,6 +434,7 @@ export default function ReportsPage() {
                     <th className="py-4 px-6">الخصم</th>
                     <th className="py-4 px-6">الإجمالي النهائي</th>
                     <th className="py-4 px-6">طريقة الدفع</th>
+                    <th className="py-4 px-6">التفاصيل</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -452,6 +454,11 @@ export default function ReportsPage() {
                         }`}>
                           {inv.paymentType === "cash" ? "كاش" : "فيزا"}
                         </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <button onClick={() => setSelectedInvoice(inv)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-200 shadow-sm" title="عرض تفاصيل الفاتورة">
+                          <Eye className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -550,6 +557,70 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
+
+      {/* INVOICE DETAILS MODAL */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm no-print">
+          <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-fade-in">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div>
+                <h3 className="font-black text-xl text-slate-900">تفاصيل الفاتورة <span className="text-blue-600">{selectedInvoice.invoiceNo}</span></h3>
+                <p className="text-sm font-bold text-slate-500 mt-1">{formatDate(selectedInvoice.createdAt)} • الكاشير: {selectedInvoice.user?.name || "-"}</p>
+              </div>
+              <button onClick={() => setSelectedInvoice(null)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors shadow-sm">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-auto p-6">
+              <table className="w-full text-sm text-right">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr className="text-slate-500 font-bold">
+                    <th className="py-3 px-4">المنتج</th>
+                    <th className="py-3 px-4">القسم</th>
+                    <th className="py-3 px-4 text-center">الكمية</th>
+                    <th className="py-3 px-4">سعر الوحدة</th>
+                    <th className="py-3 px-4">الإجمالي</th>
+                    <th className="py-3 px-4 text-emerald-600">الربح</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {selectedInvoice.items.map((item) => {
+                    const profit = item.total - (item.quantity * (item.product.costPrice || 0));
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 px-4 font-bold text-slate-900">{item.product.name}</td>
+                        <td className="py-3 px-4 text-slate-500 font-medium">{item.product.category?.name || "-"}</td>
+                        <td className="py-3 px-4 text-center font-black text-slate-700">{item.quantity}</td>
+                        <td className="py-3 px-4 font-bold text-slate-600">{formatPrice(item.price)}</td>
+                        <td className="py-3 px-4 font-black text-blue-600">{formatPrice(item.total)}</td>
+                        <td className="py-3 px-4 font-black text-emerald-600">{formatPrice(profit)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="p-6 bg-slate-50 border-t border-slate-200">
+              <div className="flex flex-wrap justify-between gap-4">
+                <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm flex-1 min-w-[150px]">
+                  <div className="text-xs font-bold text-slate-400 mb-1">المجموع</div>
+                  <div className="text-lg font-black text-slate-700">{formatPrice(selectedInvoice.total)}</div>
+                </div>
+                <div className="bg-rose-50 px-4 py-3 rounded-xl border border-rose-100 shadow-sm flex-1 min-w-[150px]">
+                  <div className="text-xs font-bold text-rose-400 mb-1">الخصم</div>
+                  <div className="text-lg font-black text-rose-600">-{formatPrice(selectedInvoice.discount)}</div>
+                </div>
+                <div className="bg-blue-50 px-4 py-3 rounded-xl border border-blue-200 shadow-sm flex-[2] min-w-[200px]">
+                  <div className="text-xs font-bold text-blue-500 mb-1">الإجمالي النهائي</div>
+                  <div className="text-xl font-black text-blue-700">{formatPrice(selectedInvoice.finalTotal)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
