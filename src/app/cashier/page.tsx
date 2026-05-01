@@ -516,28 +516,43 @@ export default function CashierPage() {
       {/* Weight Input Modal */}
       {weightInput && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 no-print backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl">
-            <h3 className="font-bold text-lg text-gray-900 mb-2">إدخال الوزن</h3>
-            <p className="text-gray-500 mb-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm mx-4 shadow-2xl border border-slate-100">
+            <h3 className="font-black text-xl text-slate-900 mb-2">إدخال الوزن</h3>
+            <p className="text-slate-500 font-bold mb-5">
               {products.find((p) => p.id === weightInput.productId)?.name}
             </p>
-            <input
-              type="number"
-              step="0.001"
-              value={weightInput.weight}
-              onChange={(e) => setWeightInput({ ...weightInput, weight: e.target.value })}
-              onKeyDown={(e) => e.key === "Enter" && handleWeightSubmit()}
-              placeholder="أدخل الوزن بالكيلو..."
-              className="input text-lg mb-4"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <button onClick={handleWeightSubmit} className="flex-1 btn-success py-3">
-                تأكيد
+            
+            {/* Quick Weight Buttons */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <button onClick={() => setWeightInput({ ...weightInput, weight: "0.125" })} className="py-2.5 rounded-xl border-2 border-blue-100 bg-blue-50/50 hover:bg-blue-100 text-blue-700 font-bold transition-colors">ثُمن كيلو</button>
+              <button onClick={() => setWeightInput({ ...weightInput, weight: "0.250" })} className="py-2.5 rounded-xl border-2 border-blue-100 bg-blue-50/50 hover:bg-blue-100 text-blue-700 font-bold transition-colors">ربع كيلو</button>
+              <button onClick={() => setWeightInput({ ...weightInput, weight: "0.500" })} className="py-2.5 rounded-xl border-2 border-blue-100 bg-blue-50/50 hover:bg-blue-100 text-blue-700 font-bold transition-colors">نصف كيلو</button>
+              <button onClick={() => setWeightInput({ ...weightInput, weight: "0.750" })} className="py-2.5 rounded-xl border-2 border-blue-100 bg-blue-50/50 hover:bg-blue-100 text-blue-700 font-bold transition-colors">كيلو إلا ربع</button>
+              <button onClick={() => setWeightInput({ ...weightInput, weight: "1.000" })} className="py-2.5 rounded-xl border-2 border-blue-100 bg-blue-50/50 hover:bg-blue-100 text-blue-700 font-bold transition-colors">كيلو</button>
+              <button onClick={() => setWeightInput({ ...weightInput, weight: "2.000" })} className="py-2.5 rounded-xl border-2 border-blue-100 bg-blue-50/50 hover:bg-blue-100 text-blue-700 font-bold transition-colors">2 كيلو</button>
+            </div>
+
+            <div className="relative mb-5">
+              <input
+                type="number"
+                step="0.001"
+                value={weightInput.weight}
+                onChange={(e) => setWeightInput({ ...weightInput, weight: e.target.value })}
+                onKeyDown={(e) => e.key === "Enter" && handleWeightSubmit()}
+                placeholder="أو اكتب الوزن بالكيلو (مثال: 0.150)"
+                className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-lg font-bold text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                autoFocus
+              />
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">كجم</div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleWeightSubmit} className="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-600 rounded-xl text-white font-bold transition-colors shadow-lg shadow-emerald-500/20">
+                إضافة للسلة
               </button>
               <button
                 onClick={() => { setWeightInput(null); barcodeRef.current?.focus(); }}
-                className="flex-1 btn-secondary py-3"
+                className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-bold transition-colors"
               >
                 إلغاء
               </button>
