@@ -175,18 +175,18 @@ export default function ReportsPage() {
         </div>
 
         {/* Date Filter & User */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <div className="hidden md:flex flex-col items-end px-2">
             <span className="text-sm font-bold text-slate-900">{user?.name}</span>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user?.role === "admin" ? "مدير" : "كاشير"}</span>
           </div>
           
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 shadow-sm">
             {(["today", "week", "month", "custom"] as const).map((range) => (
               <button
                 key={range}
                 onClick={() => setDateRange(range)}
-                className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                className={`px-3 md:px-5 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-bold transition-all ${
                   dateRange === range
                     ? "bg-white text-slate-900 shadow-sm border border-slate-200"
                     : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
@@ -196,11 +196,18 @@ export default function ReportsPage() {
               </button>
             ))}
           </div>
+          
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors shadow-lg shadow-slate-800/20 no-print"
+          >
+            طباعة التقرير
+          </button>
         </div>
       </header>
 
       {dateRange === "custom" && (
-        <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center gap-4 animate-fade-in shadow-sm">
+        <div className="px-6 py-4 bg-white border-b border-slate-200 flex flex-wrap items-center gap-4 animate-fade-in shadow-sm no-print">
           <Calendar className="w-5 h-5 text-blue-500" />
           <span className="text-sm font-bold text-slate-600">من تاريخ:</span>
           <input
@@ -209,7 +216,7 @@ export default function ReportsPage() {
             onChange={(e) => setCustomFrom(e.target.value)}
             className="input w-auto text-sm bg-slate-50"
           />
-          <span className="text-sm font-bold text-slate-600 mr-4">إلى تاريخ:</span>
+          <span className="text-sm font-bold text-slate-600 md:mr-4">إلى تاريخ:</span>
           <input
             type="date"
             value={customTo}
@@ -219,9 +226,9 @@ export default function ReportsPage() {
         </div>
       )}
 
-      <div className="p-6 max-w-7xl mx-auto space-y-8 animate-fade-in">
+      <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-8 animate-fade-in">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           <KpiCard title="إجمالي المبيعات" value={formatPrice(stats.totalSales)} icon={DollarSign} color="text-blue-600" bg="bg-blue-50" />
           <KpiCard title="صافي الأرباح" value={formatPrice(stats.profit)} icon={TrendingUp} color="text-emerald-600" bg="bg-emerald-50" sub={`${stats.profitMargin.toFixed(1)}% هامش الربح`} />
           <KpiCard title="عدد الفواتير" value={stats.totalInvoices.toString()} icon={ShoppingCart} color="text-amber-600" bg="bg-amber-50" sub={`متوسط الفاتورة: ${formatPrice(stats.avgInvoice)}`} />
@@ -229,7 +236,7 @@ export default function ReportsPage() {
         </div>
 
         {/* View Tabs */}
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 md:gap-3 no-print">
           {[
             { key: "overview", label: "نظرة عامة", icon: PieChart },
             { key: "invoices", label: "سجل الفواتير", icon: ShoppingCart },
@@ -239,13 +246,13 @@ export default function ReportsPage() {
             <button
               key={tab.key}
               onClick={() => setActiveView(tab.key as any)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[15px] font-bold transition-all shadow-sm border ${
+              className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-sm md:text-[15px] font-bold transition-all shadow-sm border ${
                 activeView === tab.key
                   ? "bg-amber-500 text-white border-amber-500 shadow-[0_4px_14px_0_rgba(245,158,11,0.39)]"
                   : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
               }`}
             >
-              <tab.icon className="w-5 h-5" />
+              <tab.icon className="w-4 h-4 md:w-5 md:h-5" />
               {tab.label}
             </button>
           ))}
