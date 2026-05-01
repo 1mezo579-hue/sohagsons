@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import toast from "react-hot-toast";
 import { formatPrice, formatDate } from "@/lib/utils";
-import { ArrowRight, Plus, Contact, Search, Phone, FileText, ChevronDown, Package } from "lucide-react";
+import { ArrowRight, Plus, Contact, Search, Phone, FileText, ChevronDown, Package, X } from "lucide-react";
 
 interface Trader {
   id: number;

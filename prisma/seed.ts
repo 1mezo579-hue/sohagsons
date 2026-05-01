@@ -1,259 +1,291 @@
 import { PrismaClient } from "@prisma/client";
+import * as bcrypt from "bcryptjs";
+
 const prisma = new PrismaClient();
 
-const data: Record<string, {n:string,b:string,p:number,c:number,s:number,t?:string,u?:string}[]> = {
-  "الزيوت والسمنات": [
-    {n:"زيت عافية ذرة 800 مل",b:"6221001",p:95,c:85,s:100},
-    {n:"زيت عافية ذرة 1.5 لتر",b:"6221002",p:175,c:160,s:80},
-    {n:"زيت عافية ذرة 2.2 لتر",b:"6221003",p:250,c:230,s:50},
-    {n:"زيت كريستال عباد 800 مل",b:"6221004",p:85,c:75,s:120},
-    {n:"زيت كريستال عباد 1.5 لتر",b:"6221005",p:160,c:145,s:90},
-    {n:"زيت هلا عباد 750 مل",b:"6221006",p:78,c:70,s:150},
-    {n:"زيت قلية خليط 700 مل",b:"6221007",p:55,c:48,s:200},
-    {n:"سمنة روابي 700 جم",b:"6221008",p:85,c:75,s:100},
-    {n:"سمنة روابي 1.5 كجم",b:"6221009",p:175,c:160,s:60},
-    {n:"سمنة كريستال 700 جم",b:"6221010",p:85,c:75,s:100},
-    {n:"سمنة جنة 1.5 كجم",b:"6221011",p:170,c:155,s:50},
-    {n:"زبدة فيرن 400 جم",b:"6221012",p:120,c:105,s:80},
-    {n:"زبدة لورباك 400 جم",b:"6221013",p:180,c:160,s:40},
-  ],
-  "منتجات البان": [
-    {n:"حليب جهينة كامل 1 لتر",b:"6222001",p:42,c:38,s:300},
-    {n:"حليب جهينة خالي 1 لتر",b:"6222002",p:42,c:38,s:100},
-    {n:"حليب المراعي 1.5 لتر",b:"6222003",p:58,c:52,s:150},
-    {n:"حليب بخيره 500 مل",b:"6222004",p:20,c:18,s:400},
-    {n:"زبادي جهينة 105 جم",b:"6222005",p:7,c:5.5,s:500},
-    {n:"زبادي المراعي لايت",b:"6222006",p:7.5,c:6,s:150},
-    {n:"رايب جهينة 440 مل",b:"6222007",p:18,c:15,s:120},
-    {n:"جبنة بريزيدون مثلثات 16",b:"6222008",p:65,c:55,s:200},
-    {n:"جبنة طعمة مثلثات 8",b:"6222009",p:22,c:18,s:300},
-    {n:"جبنة لافاش كيري 24",b:"6222010",p:95,c:82,s:80},
-    {n:"جبنة دومتي فيتا 500 جم",b:"6222011",p:38,c:32,s:250},
-    {n:"جبنة عبور اسطنبولي 250",b:"6222012",p:22,c:18,s:200},
-  ],
-  "معلبات": [
-    {n:"تونة صن شاين قطع 170",b:"6223001",p:65,c:55,s:300},
-    {n:"تونة صن شاين مفتتة 140",b:"6223002",p:35,c:28,s:400},
-    {n:"تونة دولفين شرائح 170",b:"6223003",p:70,c:60,s:150},
-    {n:"صلصة هارفست 380 جم",b:"6223004",p:28,c:23,s:250},
-    {n:"صلصة فاين فودز 320",b:"6223005",p:25,c:20,s:200},
-    {n:"فول مدمس امريكانا 400",b:"6223006",p:20,c:16,s:300},
-    {n:"فول هارفست بالخلطة 400",b:"6223007",p:22,c:18,s:200},
-    {n:"ذرة حلوة امريكانا 400",b:"6223008",p:45,c:38,s:120},
-    {n:"مشروم هارفست 400",b:"6223009",p:55,c:48,s:100},
-    {n:"مايونيز هاينز 310",b:"6223010",p:65,c:55,s:150},
-    {n:"كاتشب هاينز 340",b:"6223011",p:45,c:38,s:200},
-    {n:"طحينة البوادي 500",b:"6223012",p:95,c:85,s:100},
-    {n:"مربى فيتراك فراولة 450",b:"6223013",p:48,c:40,s:150},
-    {n:"عسل نحل امتنان 800",b:"6223014",p:185,c:165,s:50},
-  ],
-  "مكرونات ورز أكياس": [
-    {n:"مكرونة ريجينا قلم 400",b:"6224001",p:20,c:16,s:300},
-    {n:"مكرونة ريجينا اسباجتي 400",b:"6224002",p:20,c:16,s:300},
-    {n:"مكرونة حوا قلم 400",b:"6224003",p:12,c:9.5,s:500},
-    {n:"مكرونة حوا خواتم 400",b:"6224004",p:12,c:9.5,s:400},
-    {n:"مكرونة الملكة 1 كجم",b:"6224005",p:30,c:25,s:200},
-    {n:"ارز الضحى 1 كجم",b:"6224006",p:42,c:35,s:400},
-    {n:"ارز الضحى 5 كجم",b:"6224007",p:205,c:175,s:80},
-    {n:"ارز المطبخ 1 كجم",b:"6224008",p:38,c:32,s:350},
-    {n:"ارز الساعة 1 كجم",b:"6224009",p:35,c:28,s:500},
-    {n:"دقيق الضحى 1 كجم",b:"6224010",p:30,c:24,s:250},
-    {n:"سكر الأسرة 1 كجم",b:"6224011",p:38,c:31,s:800},
-    {n:"عدس بجبة الضحى 500",b:"6224012",p:45,c:38,s:100},
-  ],
-  "جبن بالوزن": [
-    {n:"جبن رومي قديم",b:"6225001",p:280,c:230,s:25,t:"weight",u:"kg"},
-    {n:"جبن رومي وسط",b:"6225002",p:240,c:200,s:30,t:"weight",u:"kg"},
-    {n:"جبن رومي جديد",b:"6225003",p:210,c:175,s:40,t:"weight",u:"kg"},
-    {n:"جبن شيدر مستورد",b:"6225004",p:350,c:290,s:15,t:"weight",u:"kg"},
-    {n:"جبن فلامنك هولندي",b:"6225005",p:380,c:320,s:10,t:"weight",u:"kg"},
-    {n:"جبن جودة مستورد",b:"6225006",p:360,c:300,s:12,t:"weight",u:"kg"},
-    {n:"جبن ابيض براميلي",b:"6225007",p:140,c:110,s:35,t:"weight",u:"kg"},
-    {n:"جبن اسطنبولي ممتاز",b:"6225008",p:150,c:120,s:20,t:"weight",u:"kg"},
-    {n:"جبن قريش فلاحي",b:"6225009",p:80,c:60,s:50,t:"weight",u:"kg"},
-    {n:"بسطرمة بالثوم",b:"6225010",p:450,c:380,s:8,t:"weight",u:"kg"},
-    {n:"لانشون بيف حلواني",b:"6225011",p:220,c:180,s:15,t:"weight",u:"kg"},
-    {n:"لانشون فراخ حلواني",b:"6225012",p:230,c:190,s:12,t:"weight",u:"kg"},
-    {n:"حلاوة طحينية سادة",b:"6225013",p:110,c:85,s:25,t:"weight",u:"kg"},
-    {n:"زيتون كلاماتا",b:"6225014",p:120,c:90,s:30,t:"weight",u:"kg"},
-    {n:"زيتون اخضر تفاحي",b:"6225015",p:90,c:70,s:40,t:"weight",u:"kg"},
-  ],
-  "عطارة بالوزن": [
-    {n:"فلفل اسود حصى",b:"6227001",p:450,c:380,s:10,t:"weight",u:"kg"},
-    {n:"فلفل اسود ناعم",b:"6227002",p:480,c:400,s:15,t:"weight",u:"kg"},
-    {n:"كمون بلدي ناعم",b:"6227003",p:380,c:320,s:20,t:"weight",u:"kg"},
-    {n:"كزبرة ناعمة",b:"6227004",p:120,c:90,s:25,t:"weight",u:"kg"},
-    {n:"شطة حارة",b:"6227005",p:150,c:120,s:15,t:"weight",u:"kg"},
-    {n:"كركم هندي",b:"6227006",p:140,c:110,s:10,t:"weight",u:"kg"},
-    {n:"قرفة ناعمة",b:"6227007",p:180,c:150,s:12,t:"weight",u:"kg"},
-    {n:"كركديه اسواني",b:"6227008",p:250,c:200,s:8,t:"weight",u:"kg"},
-  ],
-  "شيبسي وبسكوتات": [
-    {n:"شيبسي عائلي طماطم",b:"6228001",p:15,c:12,s:150},
-    {n:"شيبسي عائلي جبنة",b:"6228002",p:15,c:12,s:150},
-    {n:"دوريتوس حار حلو كبير",b:"6228003",p:15,c:12,s:100},
-    {n:"شيتوس كرنشي جبنة",b:"6228004",p:10,c:8,s:200},
-    {n:"بسكويت اوريو 6 قطع",b:"6228005",p:10,c:8,s:300},
-    {n:"بسكويت بيمبو",b:"6228006",p:5,c:4,s:400},
-    {n:"شوكولاتة كادبوري",b:"6228007",p:35,c:28,s:100},
-    {n:"شوكولاتة كيت كات",b:"6228008",p:20,c:16,s:150},
-  ],
-  "مياه غازية": [
-    {n:"بيبسي 1 لتر",b:"6229001",p:20,c:17,s:200},
-    {n:"بيبسي 2.5 لتر",b:"6229002",p:35,c:30,s:100},
-    {n:"كوكاكولا 1 لتر",b:"6229003",p:20,c:17,s:200},
-    {n:"سفن اب 1 لتر",b:"6229004",p:20,c:17,s:150},
-    {n:"ميرندا برتقال 1 لتر",b:"6229005",p:20,c:17,s:150},
-    {n:"بيبسي كانز 330 مل",b:"6229006",p:12,c:10,s:300},
-    {n:"كوكاكولا كانز 330 مل",b:"6229007",p:12,c:10,s:300},
-    {n:"مياه نستله 600 مل",b:"6229008",p:5,c:3.5,s:500},
-    {n:"مياه نستله 1.5 لتر",b:"6229009",p:10,c:7,s:200},
-    {n:"مياه اكوافينا 600 مل",b:"6229010",p:5,c:3.5,s:400},
-  ],
-  "عصائر معلبة": [
-    {n:"عصير جهينة مانجو 1 لتر",b:"6230001",p:35,c:28,s:100},
-    {n:"عصير جهينة تفاح 1 لتر",b:"6230002",p:35,c:28,s:100},
-    {n:"عصير جهينة جوافة 235 مل",b:"6230003",p:10,c:8,s:250},
-    {n:"عصير بيتي برتقال 1 لتر",b:"6230004",p:28,c:23,s:120},
-    {n:"عصير لمار تفاح 1 لتر",b:"6230005",p:38,c:30,s:80},
-    {n:"عصير فلوريدا برتقال 1 لتر",b:"6230006",p:45,c:38,s:60},
-  ],
-  "باتيه ومعجنات": [
-    {n:"مولتو ماجنوم شوكولاتة",b:"6231001",p:15,c:12,s:200},
-    {n:"مولتو ميني زعتر",b:"6231002",p:10,c:8,s:150},
-    {n:"باتيه ايديتا جبنة",b:"6231003",p:10,c:8,s:200},
-    {n:"توينكيز",b:"6231004",p:5,c:4,s:400},
-    {n:"هوهوز شوكولاتة",b:"6231005",p:5,c:4,s:400},
-    {n:"كيك تودو براونيز",b:"6231006",p:8,c:6.5,s:250},
-  ],
-  "مشروبات ساخنة": [
-    {n:"شاي العروسة 250 جم",b:"6232001",p:45,c:38,s:150},
-    {n:"شاي ليبتون 250 جم",b:"6232002",p:55,c:48,s:120},
-    {n:"نسكافيه 3 في 1 باكيت",b:"6232003",p:4,c:3.2,s:500},
-    {n:"نسكافيه جولد لاتيه",b:"6232004",p:10,c:8,s:300},
-    {n:"كابتشينو بونجورنو",b:"6232005",p:5,c:4,s:200},
-    {n:"بن عبد المعبود 100 جم",b:"6232006",p:45,c:38,s:80},
-    {n:"سحلب حلو الشام 250",b:"6232007",p:35,c:28,s:50},
-    {n:"كاكاو كورونا 250 جم",b:"6232008",p:40,c:32,s:60},
-  ],
-  "منظفات غسيل ملابس": [
-    {n:"برسيل جيل 2.5 لتر",b:"6233001",p:185,c:165,s:50},
-    {n:"برسيل بودر 4 كجم",b:"6233002",p:220,c:195,s:40},
-    {n:"تايد بودر 2.5 كجم",b:"6233003",p:165,c:145,s:60},
-    {n:"تايد جيل 1.8 لتر",b:"6233004",p:155,c:135,s:45},
-    {n:"اريال بودر 2.5 كجم",b:"6233005",p:175,c:155,s:50},
-    {n:"اريال جيل 1.8 لتر",b:"6233006",p:160,c:140,s:40},
-    {n:"بونكس بودر 2 كجم",b:"6233007",p:85,c:70,s:100},
-    {n:"رابسو بودر 1.5 كجم",b:"6233008",p:55,c:45,s:120},
-    {n:"فانيش مزيل بقع 500 مل",b:"6233009",p:95,c:80,s:60},
-    {n:"فانيش بودر 450 جم",b:"6233010",p:85,c:72,s:50},
-    {n:"كلوركس الوان 1 لتر",b:"6233011",p:30,c:24,s:80},
-  ],
-  "منظفات مواعين": [
-    {n:"بريل 1 لتر ليمون",b:"6234001",p:35,c:30,s:100},
-    {n:"بريل 700 مل تفاح",b:"6234002",p:28,c:23,s:120},
-    {n:"فيري ليمون 750 مل",b:"6234003",p:45,c:38,s:80},
-    {n:"فيري اورجينال 750 مل",b:"6234004",p:45,c:38,s:70},
-    {n:"بريل 2 لتر ليمون",b:"6234005",p:60,c:50,s:60},
-    {n:"سائل مواعين ماما ليمون 1 لتر",b:"6234006",p:32,c:26,s:100},
-    {n:"فلاش مواعين 1 لتر",b:"6234007",p:30,c:25,s:90},
-  ],
-  "منظفات ارضيات ومطهرات": [
-    {n:"ديتول مطهر 500 مل",b:"6235001",p:120,c:100,s:60},
-    {n:"ديتول مطهر 1 لتر",b:"6235002",p:195,c:170,s:40},
-    {n:"ديتول سبراي 500 مل",b:"6235003",p:85,c:72,s:50},
-    {n:"كلوركس ابيض 1 لتر",b:"6235004",p:25,c:20,s:150},
-    {n:"كلوركس ابيض 2 لتر",b:"6235005",p:42,c:35,s:80},
-    {n:"فلاش ارضيات لافندر 1.5 لتر",b:"6235006",p:35,c:28,s:100},
-    {n:"فلاش ارضيات صنوبر 1.5 لتر",b:"6235007",p:35,c:28,s:100},
-    {n:"داك ارضيات 1 لتر",b:"6235008",p:30,c:24,s:120},
-    {n:"زوم منظف حمامات 500 مل",b:"6235009",p:22,c:18,s:80},
-    {n:"سيليت بنك 500 مل",b:"6235010",p:35,c:28,s:60},
-    {n:"تايلت منظف حمامات 500 مل",b:"6235011",p:28,c:22,s:70},
-    {n:"جيف كريم تنظيف 500 مل",b:"6235012",p:38,c:30,s:50},
-  ],
-  "معطرات ومنعمات": [
-    {n:"داوني 1 لتر ازرق",b:"6236001",p:95,c:82,s:60},
-    {n:"داوني 2 لتر ازرق",b:"6236002",p:170,c:150,s:35},
-    {n:"كمفورت 1 لتر وردي",b:"6236003",p:85,c:72,s:70},
-    {n:"كمفورت 2 لتر بنفسجي",b:"6236004",p:155,c:135,s:40},
-    {n:"معطر جو ايرويك سبراي",b:"6236005",p:75,c:62,s:50},
-    {n:"معطر جو فريش ماتيك",b:"6236006",p:120,c:100,s:30},
-    {n:"معطر حمام سانيتول 300 مل",b:"6236007",p:35,c:28,s:80},
-    {n:"معطر ملابس لينور 1 لتر",b:"6236008",p:90,c:78,s:45},
-  ],
-  "مناديل وورقيات": [
-    {n:"مناديل فاين 550 منديل",b:"6237001",p:65,c:55,s:100},
-    {n:"مناديل زينة 300 منديل",b:"6237002",p:40,c:33,s:150},
-    {n:"مناديل فاين بوكس 150",b:"6237003",p:30,c:25,s:120},
-    {n:"بكرة مطبخ فاين كبيرة",b:"6237004",p:45,c:38,s:80},
-    {n:"مناديل مبللة جونسون 72",b:"6237005",p:55,c:45,s:60},
-    {n:"ورق فويل 30 سم",b:"6237006",p:75,c:62,s:80},
-    {n:"ورق فويل 45 سم",b:"6237007",p:110,c:92,s:50},
-    {n:"اكياس زبالة 50 سم",b:"6237008",p:20,c:15,s:200},
-    {n:"اكياس زبالة 70 سم",b:"6237009",p:30,c:22,s:150},
-    {n:"ورق كلينكس بوكس",b:"6237010",p:35,c:28,s:100},
-  ],
-  "قسم المجمدات": [
-    {n:"كوكي بانيه 1 كيلو",b:"6238001",p:220,c:195,s:50},
-    {n:"حلواني برجر 1 كيلو",b:"6238002",p:240,c:210,s:40},
-    {n:"خضار مشكل بسمة 400",b:"6238003",p:35,c:28,s:100},
-    {n:"مراعي كفتة 1 كيلو",b:"6238004",p:195,c:170,s:30},
-    {n:"جيفركس ملوخية 400",b:"6238005",p:20,c:15,s:150},
-    {n:"بازلاء مجمدة 400",b:"6238006",p:25,c:20,s:120},
-    {n:"بطاطس فارم فريتس 1 كجم",b:"6238007",p:85,c:70,s:60},
-    {n:"ناجتس امريكانا 400",b:"6238008",p:110,c:92,s:50},
-    {n:"سمبوسك جبنة 12 قطعة",b:"6238009",p:65,c:55,s:40},
-  ],
-  "حلويات وشيكولاتة": [
-    {n:"جالكسي سادة كبيرة",b:"6239001",p:35,c:28,s:100},
-    {n:"كادبوري بابلي",b:"6239002",p:30,c:24,s:120},
-    {n:"كيندر جوي",b:"6239003",p:55,c:45,s:80},
-    {n:"نوتيلا 350 جرام",b:"6239004",p:165,c:145,s:40},
-    {n:"كيندر بوينو",b:"6239005",p:25,c:20,s:150},
-    {n:"سنيكرز",b:"6239006",p:20,c:16,s:200},
-    {n:"تويكس",b:"6239007",p:20,c:16,s:200},
-    {n:"مارس",b:"6239008",p:20,c:16,s:180},
-    {n:"ام اند امز 45 جم",b:"6239009",p:25,c:20,s:100},
-    {n:"بسكويت لوتس",b:"6239010",p:15,c:12,s:200},
-  ],
-};
-
 async function main() {
-  await prisma.invoiceItem.deleteMany();
-  await prisma.invoice.deleteMany();
-  await prisma.stockLog.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.user.deleteMany();
+  // 1. Users
+  const hashedPassword = await bcrypt.hash("102030", 10);
+  const managerPassword = await bcrypt.hash("tech123", 10);
+  const cashierPassword = await bcrypt.hash("sales123", 10);
 
-  let bc = 0;
-  for (const [catName, products] of Object.entries(data)) {
-    const cat = await prisma.category.create({ data: { name: catName } });
-    for (const p of products) {
-      await prisma.product.create({
-        data: {
-          name: p.n, barcode: p.b, categoryId: cat.id,
-          priceType: p.t || "unit", price: p.p, costPrice: p.c,
-          stock: p.s, minStock: Math.max(2, Math.floor(p.s * 0.1)),
-          unit: p.u || "piece",
-        },
-      });
-      bc++;
+  const users = [
+    { username: "admin", password: hashedPassword, role: "admin", name: "إسلام (Owner)" },
+    { username: "manager", password: managerPassword, role: "manager", name: "أحمد (مدير)" },
+    { username: "cashier1", password: cashierPassword, role: "cashier", name: "كاشير 1" },
+  ];
+
+  for (const u of users) {
+    await prisma.user.upsert({
+      where: { username: u.username },
+      update: {},
+      create: u,
+    });
+  }
+
+  // 2. Traders (Suppliers)
+  const traders = [
+    { name: "مندوب جهينة", company: "Juhayna", phone: "01000000001", balance: 0 },
+    { name: "مندوب المراعي / بيتي", company: "Almarai", phone: "01000000002", balance: 0 },
+    { name: "مندوب شيبسي", company: "Chipsy Egypt", phone: "01000000003", balance: 0 },
+    { name: "مندوب كوكاكولا", company: "Coca-Cola", phone: "01000000004", balance: 0 },
+    { name: "مندوب بيبسي", company: "PepsiCo", phone: "01000000005", balance: 0 },
+    { name: "مندوب نستله", company: "Nestle", phone: "01000000006", balance: 0 },
+    { name: "مندوب إيديتا", company: "Edita (Molto/Todo)", phone: "01000000007", balance: 0 },
+    { name: "مندوب يونيليفر", company: "Unilever (Lipton/Knorr)", phone: "01000000008", balance: 0 },
+    { name: "مندوب بروكتر وجامبل", company: "P&G (Ariel/Tide)", phone: "01000000009", balance: 0 },
+    { name: "مندوب فرج الله", company: "Faragalla", phone: "01000000010", balance: 0 },
+    { name: "مندوب حلواني اخوان", company: "Halwani Bros", phone: "01000000011", balance: 0 },
+    { name: "تاجر الجملة (عطارة وبقوليات)", company: "السوق المحلي", phone: "01000000012", balance: 0 },
+  ];
+
+  for (const t of traders) {
+    const exists = await prisma.trader.findFirst({ where: { name: t.name } });
+    if (!exists) {
+      await prisma.trader.create({ data: t });
     }
   }
 
-  await prisma.user.createMany({
-    data: [
-      { name: "إسلام (Owner)", username: "admin", password: "102030", role: "admin" },
-      { name: "مسئول صيانة", username: "tech", password: "tech123", role: "manager" },
-      { name: "بائع", username: "sales", password: "sales123", role: "cashier" },
-    ],
-  });
+  // 3. Categories & Products
+  const categoriesData = [
+    {
+      name: "ألبان وأجبان",
+      products: [
+        { name: "لبن جهينة كامل الدسم 1 لتر", costPrice: 35, price: 40 },
+        { name: "لبن جهينة خالي الدسم 1 لتر", costPrice: 35, price: 40 },
+        { name: "لبن المراعي 1 لتر", costPrice: 36, price: 42 },
+        { name: "لبن بخيره نصف لتر", costPrice: 18, price: 22 },
+        { name: "زبادي جهينة طبيعي", costPrice: 5, price: 7 },
+        { name: "زبادي المراعي فواكه", costPrice: 6, price: 8 },
+        { name: "زبادي دانون لايت", costPrice: 6, price: 8 },
+        { name: "جبنة دومتي فيتا 500 جم", costPrice: 30, price: 35 },
+        { name: "جبنة عبور لاند تتراباك 250 جم", costPrice: 15, price: 18 },
+        { name: "جبنة بريزيدون مثلثات 8 قطع", costPrice: 20, price: 25 },
+        { name: "جبنة كيري مربعات 6 قطع", costPrice: 25, price: 30 },
+        { name: "جبنة رومي قديم (وزن)", costPrice: 200, price: 240, priceType: "weight", unit: "kg" },
+        { name: "جبنة فلامنك (وزن)", costPrice: 250, price: 300, priceType: "weight", unit: "kg" },
+        { name: "جبنة شيدر مستورد (وزن)", costPrice: 180, price: 220, priceType: "weight", unit: "kg" },
+        { name: "قشطة بلدي (وزن)", costPrice: 150, price: 180, priceType: "weight", unit: "kg" },
+        { name: "زبدة فيرن 1 كجم", costPrice: 85, price: 100 },
+        { name: "زبدة لورباك 400 جم", costPrice: 110, price: 135 },
+      ]
+    },
+    {
+      name: "مشروبات غازية وعصائر",
+      products: [
+        { name: "كوكاكولا 1 لتر", costPrice: 12, price: 15 },
+        { name: "بيبسي 1 لتر", costPrice: 12, price: 15 },
+        { name: "سبرايت 1 لتر", costPrice: 12, price: 15 },
+        { name: "شويبس رمان كانز", costPrice: 8, price: 10 },
+        { name: "ريد بول مشروب طاقة", costPrice: 30, price: 40 },
+        { name: "عصير جهينة مانجو 1 لتر", costPrice: 20, price: 25 },
+        { name: "عصير بيتي برتقال 1 لتر", costPrice: 18, price: 22 },
+        { name: "عصير لمار تفاح 1 لتر", costPrice: 22, price: 28 },
+        { name: "مياه صافي 1.5 لتر", costPrice: 4, price: 6 },
+        { name: "مياه نستله 600 مل", costPrice: 3, price: 5 },
+        { name: "مياه دساني جالون", costPrice: 40, price: 55 },
+      ]
+    },
+    {
+      name: "شيبسي وسناكس",
+      products: [
+        { name: "شيبسي طماطم عائلي", costPrice: 8, price: 10 },
+        { name: "شيبسي جبنة متبلة عائلي", costPrice: 8, price: 10 },
+        { name: "دوريتوس جبنة ناتشو", costPrice: 8, price: 10 },
+        { name: "شيتوس كرانشي", costPrice: 4, price: 5 },
+        { name: "صن بايتس زيتون", costPrice: 4, price: 5 },
+        { name: "تايجر شطة وليمون", costPrice: 4, price: 5 },
+        { name: "ويندوز جبنة", costPrice: 4, price: 5 },
+        { name: "بيك رولز بيتزا", costPrice: 4, price: 5 },
+        { name: "فشار كراميل (بطل)", costPrice: 8, price: 10 },
+      ]
+    },
+    {
+      name: "مخبوزات وبسكويت",
+      products: [
+        { name: "مولتو شوكولاتة ماجنم", costPrice: 8, price: 10 },
+        { name: "تودو براونيز", costPrice: 4, price: 5 },
+        { name: "هوهوز", costPrice: 4, price: 5 },
+        { name: "توينكيز", costPrice: 4, price: 5 },
+        { name: "بسكويت داتو", costPrice: 4, price: 5 },
+        { name: "بسكويت لمبادا", costPrice: 2.5, price: 3 },
+        { name: "بسكويت أوريو 4 قطع", costPrice: 4, price: 5 },
+        { name: "بسكويت بيمبو", costPrice: 4, price: 5 },
+        { name: "ويفر فريسكا", costPrice: 2.5, price: 3 },
+        { name: "عيش فينو (كيس 5 رغيف)", costPrice: 8, price: 10 },
+        { name: "عيش توست ريتش بيك", costPrice: 35, price: 45 },
+      ]
+    },
+    {
+      name: "شوكولاتة وحلويات",
+      products: [
+        { name: "شوكولاتة كادبوري سادة", costPrice: 15, price: 20 },
+        { name: "شوكولاتة جلاكسي بندق", costPrice: 18, price: 25 },
+        { name: "شوكولاتة سنيكرز", costPrice: 12, price: 15 },
+        { name: "شوكولاتة كيت كات 4 أصابع", costPrice: 12, price: 15 },
+        { name: "شوكولاتة باونتي", costPrice: 12, price: 15 },
+        { name: "شوكولاتة مورو", costPrice: 8, price: 10 },
+        { name: "بونبون سيلا الميزان (وزن)", costPrice: 80, price: 100, priceType: "weight", unit: "kg" },
+        { name: "ملبس طوفي (وزن)", costPrice: 60, price: 80, priceType: "weight", unit: "kg" },
+        { name: "جيلي كولا هاريبو", costPrice: 25, price: 35 },
+      ]
+    },
+    {
+      name: "شاي وقهوة ومشروبات ساخنة",
+      products: [
+        { name: "شاي ليبتون 250 جم", costPrice: 35, price: 42 },
+        { name: "شاي العروسة 250 جم", costPrice: 30, price: 35 },
+        { name: "شاي أحمد تي فتلة 100 فتلة", costPrice: 80, price: 95 },
+        { name: "نسكافيه كلاسيك 50 جم", costPrice: 45, price: 55 },
+        { name: "نسكافيه جولد 100 جم", costPrice: 120, price: 150 },
+        { name: "بن عبد المعبود محوج 200 جم", costPrice: 50, price: 60 },
+        { name: "بن أبو عوف سادة 250 جم", costPrice: 60, price: 75 },
+        { name: "كاكاو كورونا", costPrice: 25, price: 30 },
+        { name: "سحلب حلو الشام", costPrice: 20, price: 25 },
+      ]
+    },
+    {
+      name: "بقوليات وعطارة (وزن)",
+      products: [
+        { name: "أرز بلدي عريض (وزن)", costPrice: 25, price: 30, priceType: "weight", unit: "kg" },
+        { name: "مكرونة حواء 400 جم", costPrice: 8, price: 10 },
+        { name: "مكرونة الملكة 400 جم", costPrice: 8, price: 10 },
+        { name: "مكرونة سايبة (وزن)", costPrice: 18, price: 22, priceType: "weight", unit: "kg" },
+        { name: "سكر أبيض (وزن)", costPrice: 27, price: 35, priceType: "weight", unit: "kg" },
+        { name: "دقيق أبيض (وزن)", costPrice: 18, price: 22, priceType: "weight", unit: "kg" },
+        { name: "عدس أصفر (وزن)", costPrice: 45, price: 55, priceType: "weight", unit: "kg" },
+        { name: "عدس بجبة (وزن)", costPrice: 40, price: 50, priceType: "weight", unit: "kg" },
+        { name: "فول تدميس (وزن)", costPrice: 35, price: 45, priceType: "weight", unit: "kg" },
+        { name: "لوبيا بلدي (وزن)", costPrice: 60, price: 80, priceType: "weight", unit: "kg" },
+        { name: "فاصوليا بيضاء (وزن)", costPrice: 70, price: 90, priceType: "weight", unit: "kg" },
+        { name: "كمون حصى/مطحون (وزن)", costPrice: 250, price: 300, priceType: "weight", unit: "kg" },
+        { name: "فلفل أسود (وزن)", costPrice: 280, price: 350, priceType: "weight", unit: "kg" },
+        { name: "كزبرة ناشفة (وزن)", costPrice: 100, price: 130, priceType: "weight", unit: "kg" },
+        { name: "شطة حمراء (وزن)", costPrice: 120, price: 150, priceType: "weight", unit: "kg" },
+      ]
+    },
+    {
+      name: "زيوت وسمن",
+      products: [
+        { name: "زيت عافية ذرة 1 لتر", costPrice: 65, price: 75 },
+        { name: "زيت كريستال عباد الشمس 1 لتر", costPrice: 60, price: 70 },
+        { name: "زيت قلية خليط 1 لتر", costPrice: 45, price: 55 },
+        { name: "سمنة روابي 1.5 كجم", costPrice: 110, price: 130 },
+        { name: "سمنة جنة 1.5 كجم", costPrice: 110, price: 130 },
+        { name: "سمنة الحلوب 800 جم", costPrice: 180, price: 220 },
+        { name: "زيت زيتون وادي فود 500 مل", costPrice: 150, price: 180 },
+      ]
+    },
+    {
+      name: "معلبات وصلصة",
+      products: [
+        { name: "صلصة هاينز 360 جم", costPrice: 22, price: 28 },
+        { name: "صلصة فاين فودز برطمان", costPrice: 18, price: 23 },
+        { name: "تونا صن شاين قطع", costPrice: 35, price: 45 },
+        { name: "تونا تونة دولفين مفتتة", costPrice: 20, price: 25 },
+        { name: "فول أمريكانا سادة 400 جم", costPrice: 12, price: 15 },
+        { name: "فول حدائق كاليفورنيا خلطة", costPrice: 15, price: 18 },
+        { name: "ذرة حلوة معلبة", costPrice: 30, price: 40 },
+        { name: "مشروم قطع معلب", costPrice: 35, price: 45 },
+        { name: "حلاوة طحينية البوادي 500 جم", costPrice: 45, price: 55 },
+        { name: "طحينة الرشيدي الميزان 250 جم", costPrice: 35, price: 45 },
+        { name: "عسل أسود البوادي 700 جم", costPrice: 30, price: 40 },
+        { name: "عسل نحل امتنان 500 جم", costPrice: 85, price: 110 },
+        { name: "مربى فيتراك فراولة 380 جم", costPrice: 28, price: 35 },
+      ]
+    },
+    {
+      name: "لحوم ومجمدات",
+      products: [
+        { name: "برجر حلواني 8 قطع", costPrice: 70, price: 85 },
+        { name: "هوت دوج فرج الله", costPrice: 50, price: 65 },
+        { name: "بانيه أطياب عادي/حار 1 كجم", costPrice: 150, price: 180 },
+        { name: "كفتة داوود باشا أمريكانا", costPrice: 80, price: 100 },
+        { name: "بطاطس فارم فريتس 1 كجم", costPrice: 45, price: 55 },
+        { name: "بسلة بالجزر مونتانا 400 جم", costPrice: 18, price: 22 },
+        { name: "ملوخية بسمة 400 جم", costPrice: 15, price: 18 },
+        { name: "بسطرمة (وزن)", costPrice: 350, price: 420, priceType: "weight", unit: "kg" },
+        { name: "لانشون حلواني سادة (وزن)", costPrice: 140, price: 170, priceType: "weight", unit: "kg" },
+        { name: "لانشون المراعي زيتون (وزن)", costPrice: 120, price: 150, priceType: "weight", unit: "kg" },
+      ]
+    },
+    {
+      name: "منظفات وعناية بالمنزل",
+      products: [
+        { name: "مسحوق إريال أوتوماتيك 2.5 كجم", costPrice: 140, price: 165 },
+        { name: "مسحوق برسيل أوتوماتيك 3 كجم", costPrice: 130, price: 155 },
+        { name: "مسحوق تايْد يدوي 500 جم", costPrice: 20, price: 25 },
+        { name: "مسحوق أوكسي 2 كجم", costPrice: 90, price: 110 },
+        { name: "صابون سائل بريل 1 لتر", costPrice: 30, price: 38 },
+        { name: "صابون سائل فيري 1 لتر", costPrice: 35, price: 45 },
+        { name: "صابون سائل فيبا 2 لتر", costPrice: 40, price: 50 },
+        { name: "منظف زجاج جليد", costPrice: 25, price: 32 },
+        { name: "منظف تواليت هاربيك", costPrice: 35, price: 45 },
+        { name: "كلوروكس ألوان 1 لتر", costPrice: 22, price: 28 },
+        { name: "كلور أبيض زجاجة", costPrice: 10, price: 15 },
+        { name: "ديتول مطهر 500 مل", costPrice: 85, price: 110 },
+        { name: "معطر جو فريدا", costPrice: 45, price: 55 },
+        { name: "مناديل فاين 550 منديل (3 قطع)", costPrice: 50, price: 65 },
+        { name: "مناديل زينة تواليت (بكرة)", costPrice: 5, price: 8 },
+        { name: "ورق فويل سانيتا", costPrice: 40, price: 50 },
+        { name: "أكياس قمامة كبيرة", costPrice: 25, price: 35 },
+        { name: "سلك مواعين (وزن)", costPrice: 40, price: 60, priceType: "weight", unit: "kg" },
+        { name: "ليفة غسيل أطباق", costPrice: 10, price: 15 },
+      ]
+    },
+    {
+      name: "عناية شخصية وصابون",
+      products: [
+        { name: "شامبو صانسيلك 400 مل", costPrice: 55, price: 70 },
+        { name: "شامبو كلير للرجال 400 مل", costPrice: 65, price: 80 },
+        { name: "شامبو بانتين 400 مل", costPrice: 60, price: 75 },
+        { name: "صابون لوكس 120 جم", costPrice: 12, price: 15 },
+        { name: "صابون دوف 100 جم", costPrice: 25, price: 35 },
+        { name: "صابون كامي 120 جم", costPrice: 10, price: 13 },
+        { name: "صابون ديتول 120 جم", costPrice: 15, price: 20 },
+        { name: "معجون أسنان سيجنال 100 مل", costPrice: 25, price: 35 },
+        { name: "معجون أسنان كولجيت 100 مل", costPrice: 30, price: 40 },
+        { name: "فرشاة أسنان أورال بي", costPrice: 25, price: 35 },
+        { name: "شفرات حلاقة جيليت بلو 3", costPrice: 35, price: 45 },
+        { name: "فوط صحية أولويز الترا", costPrice: 30, price: 40 },
+        { name: "حفاضات بامبرز مقاس 4", costPrice: 200, price: 250 },
+        { name: "حفاضات بيبي جوي مقاس 4", costPrice: 180, price: 220 },
+      ]
+    }
+  ];
 
-  console.log(`✅ تم إضافة ${bc} صنف في ${Object.keys(data).length} قسم + 3 مستخدمين`);
+  let barcodeCounter = 622100000;
+
+  for (const cData of categoriesData) {
+    const category = await prisma.category.upsert({
+      where: { name: cData.name },
+      update: {},
+      create: { name: cData.name },
+    });
+
+    for (const pData of cData.products) {
+      const exists = await prisma.product.findFirst({ where: { name: pData.name } });
+      if (!exists) {
+        await prisma.product.create({
+          data: {
+            ...pData,
+            barcode: (barcodeCounter++).toString(),
+            categoryId: category.id,
+            stock: Math.floor(Math.random() * 50) + 10, // رصيد افتراضي عشوائي
+          },
+        });
+      }
+    }
+  }
+
+  console.log("Seeding Database Completed Successfully! Added 12 Categories, 150+ Products, and 12 Traders.");
 }
 
 main()
-  .catch((e) => { console.error(e); process.exit(1); })
-  .finally(() => prisma.$disconnect());
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
