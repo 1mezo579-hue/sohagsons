@@ -3,98 +3,145 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+// ─── GET: All Invoices ─────────────────────────────────────────────────────
 export async function GET() {
   try {
     const invoices = await prisma.invoice.findMany({
-      include: {
+      select: {
+        id: true,
+        invoiceNo: true,
+        total: true,
+        discount: true,
+        finalTotal: true,
+        paymentType: true,
+        createdAt: true,
         user: { select: { name: true } },
         customer: { select: { name: true, phone: true } },
         items: {
-          include: {
-            product: { select: { name: true } }
-          }
-        }
+          select: {
+            id: true,
+            quantity: true,
+            price: true,
+            total: true,
+            product: { select: { name: true } },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
+      take: 200, // Limit to last 200 invoices for speed
     });
     return NextResponse.json(invoices);
-  } catch {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  } catch (e: any) {
+    console.error("GET invoices error:", e.message);
+    return NextResponse.json({ error: "فشل تحميل الفواتير" }, { status: 500 });
   }
 }
 
+// ─── POST: Create Invoice (Optimized for Speed) ────────────────────────────
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { invoiceNo, userId, customerId, total, discount, finalTotal, paymentType, items } = body;
 
-    const invoice = await prisma.$transaction(async (tx) => {
-      // 1. Create Invoice
-      const newInvoice = await tx.invoice.create({
-        data: {
-          invoiceNo,
-          userId,
-          customerId: customerId || null,
-          total,
-          discount,
-          finalTotal,
-          paymentType,
-          items: {
-            create: items.map((item: any) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price,
-              total: item.total,
-            }))
-          }
+    // Validation
+    if (!invoiceNo || !userId || !items?.length) {
+      return NextResponse.json({ error: "بيانات الفاتورة غير مكتملة" }, { status: 400 });
+    }
+
+    // ── Step 1: Create Invoice + Items in ONE query (fastest possible) ──
+    const invoice = await prisma.invoice.create({
+      data: {
+        invoiceNo,
+        userId: Number(userId),
+        customerId: customerId ? Number(customerId) : null,
+        total: Number(total),
+        discount: Number(discount) || 0,
+        finalTotal: Number(finalTotal),
+        paymentType: paymentType || "cash",
+        items: {
+          create: items.map((item: any) => ({
+            productId: Number(item.productId),
+            quantity: Number(item.quantity),
+            price: Number(item.price),
+            total: Number(item.total),
+          })),
         },
-        include: { items: { include: { product: true } }, customer: true }
-      });
-
-      // 2. Decrease Stock (Concurrent)
-      await Promise.all(
-        items.map((item: any) => 
-          tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { decrement: item.quantity } }
-          })
-        )
-      );
-
-      // 3. Add Logs (Batch Insert)
-      await tx.stockLog.createMany({
-        data: items.map((item: any) => ({
-          productId: item.productId,
-          type: "out",
-          quantity: item.quantity,
-          reason: "sale",
-          notes: `فاتورة #${invoiceNo}`,
-        }))
-      });
-
-      // 3. Update Customer Points and Total Spent (if a customer is selected)
-      if (customerId) {
-        // Assume 1 point for every 10 EGP spent
-        const pointsEarned = Math.floor(finalTotal / 10);
-        await tx.customer.update({
-          where: { id: customerId },
-          data: {
-            points: { increment: pointsEarned },
-            totalSpent: { increment: finalTotal },
-            balance: paymentType === "credit" ? { increment: finalTotal } : undefined
-          }
-        });
-      }
-
-      return newInvoice;
-    }, {
-      maxWait: 10000,
-      timeout: 20000,
+      },
+      select: {
+        id: true,
+        invoiceNo: true,
+        total: true,
+        discount: true,
+        finalTotal: true,
+        paymentType: true,
+        createdAt: true,
+        customer: { select: { name: true, phone: true, points: true } },
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            price: true,
+            total: true,
+            product: { select: { name: true } },
+          },
+        },
+      },
     });
 
+    // ── Step 2: Fire & Forget background updates (non-blocking) ──
+    // These run AFTER we already returned the receipt to the user
+    setImmediate(async () => {
+      try {
+        // Stock updates - all concurrent
+        const stockUpdates = items.map((item: any) =>
+          prisma.product.update({
+            where: { id: Number(item.productId) },
+            data: { stock: { decrement: Number(item.quantity) } },
+          })
+        );
+
+        // Stock log batch insert
+        const logInsert = prisma.stockLog.createMany({
+          data: items.map((item: any) => ({
+            productId: Number(item.productId),
+            type: "out",
+            quantity: Number(item.quantity),
+            reason: "sale",
+            notes: `فاتورة #${invoiceNo}`,
+          })),
+          skipDuplicates: true,
+        });
+
+        // Customer update (if applicable)
+        const customerUpdate =
+          customerId
+            ? prisma.customer.update({
+                where: { id: Number(customerId) },
+                data: {
+                  points: { increment: Math.floor(Number(finalTotal) / 10) },
+                  totalSpent: { increment: Number(finalTotal) },
+                  ...(paymentType === "credit" && {
+                    balance: { increment: Number(finalTotal) },
+                  }),
+                },
+              })
+            : null;
+
+        // Run everything at once in background
+        await Promise.all([...stockUpdates, logInsert, ...(customerUpdate ? [customerUpdate] : [])]);
+      } catch (bgErr: any) {
+        // Background errors don't affect the user but log them
+        console.error("Background invoice update error:", bgErr.message);
+      }
+    });
+
+    // ── Return receipt immediately without waiting for background tasks ──
     return NextResponse.json(invoice, { status: 201 });
   } catch (e: any) {
-    console.error("Invoice error:", e);
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+    console.error("Invoice creation error:", e.message);
+    return NextResponse.json(
+      { error: e.code === "P2002" ? "رقم الفاتورة مكرر، حاول مرة أخرى" : `فشل إنشاء الفاتورة: ${e.message}` },
+      { status: 500 }
+    );
   }
 }

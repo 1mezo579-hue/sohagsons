@@ -61,8 +61,11 @@ export default function CashierPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch("/api/products");
-      if (!res.ok) throw new Error("Failed to fetch");
+      const res = await fetch("/api/products", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setProducts(Array.isArray(data) ? data : []);
     } catch {
@@ -137,12 +140,12 @@ export default function CashierPage() {
 
   const handleCheckout = async () => {
     if (cart.items.length === 0) return toast.error("السلة فارغة!");
-    
     if (cart.paymentType === "credit" && !selectedCustomer) {
-      return toast.error("يجب اختيار اسم العميل لتسجيل الفاتورة كـ آجل (شكك)");
+      return toast.error("يجب اختيار اسم العميل لتسجيل الفاتورة كـ آجل");
     }
 
     setIsLoading(true);
+
     const invoiceData = {
       invoiceNo: generateInvoiceNo(),
       userId: user?.id || 1,
@@ -168,13 +171,28 @@ export default function CashierPage() {
 
       if (res.ok) {
         const invoice = await res.json();
+        
+        // 1. Show receipt IMMEDIATELY (no waiting)
         setLastInvoice(invoice);
         setShowCheckout(false);
         setShowReceipt(true);
         setSelectedCustomer(null);
+        
+        // 2. Optimistically update stock in UI right away
+        const soldItems = cart.items;
+        setProducts(prev =>
+          prev.map(p => {
+            const sold = soldItems.find(i => i.productId === p.id);
+            return sold ? { ...p, stock: Math.max(0, p.stock - sold.quantity) } : p;
+          })
+        );
+
+        // 3. Clear cart
         cart.clearCart();
-        fetchProducts();
         toast.success("تم إتمام البيع بنجاح!");
+
+        // 4. Refresh products from server quietly in background (after 3 sec)
+        setTimeout(() => fetchProducts(), 3000);
       } else {
         const err = await res.json();
         toast.error(err.error || "فشل في حفظ الفاتورة");
