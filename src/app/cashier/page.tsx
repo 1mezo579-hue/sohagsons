@@ -271,7 +271,7 @@ export default function CashierPage() {
   }
 
   return (
-    <div className="h-screen bg-[#f8fafc] flex flex-col animate-fade-in text-slate-800">
+    <div className="min-h-screen lg:h-screen bg-[#f8fafc] flex flex-col animate-fade-in text-slate-800">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between no-print shadow-sm z-10">
         <div className="flex items-center gap-4">
@@ -284,7 +284,7 @@ export default function CashierPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900">كاشير البيع</h1>
-              <p className="text-sm text-slate-500 font-medium">أبناء سوهاج</p>
+              <p className="text-sm text-slate-500 font-medium">ماركت أبناء سوهاج</p>
             </div>
           </div>
         </div>
@@ -303,10 +303,10 @@ export default function CashierPage() {
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-6 p-6 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 p-4 md:p-6 lg:overflow-hidden">
         {/* Left: Products */}
         <div className="flex-1 flex flex-col gap-5 min-w-0 no-print overflow-hidden">
-          <div className="flex gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             {/* Barcode */}
             <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex-1">
               <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
@@ -664,7 +664,7 @@ export default function CashierPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 max-h-[90vh] overflow-auto shadow-2xl">
             <div className="text-center mb-4 border-b-2 border-dashed border-gray-200 pb-4">
-              <h2 className="text-2xl font-black text-gray-900">أبناء سوهاج</h2>
+              <h2 className="text-2xl font-black text-gray-900">ماركت أبناء سوهاج</h2>
               
               <div className="flex flex-col items-center gap-1 my-3 text-[13px] font-bold text-gray-700">
                 <div className="flex items-center gap-2">

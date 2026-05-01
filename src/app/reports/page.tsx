@@ -580,7 +580,7 @@ export default function ReportsPage() {
             
             {/* Print Header (Only visible during print) */}
             <div className="hidden print:block text-center mb-4 border-b-2 border-dashed border-gray-200 pb-4 pt-4">
-              <h2 className="text-2xl font-black text-gray-900">أبناء سوهاج</h2>
+              <h2 className="text-2xl font-black text-gray-900">ماركت أبناء سوهاج</h2>
 
               <div className="flex flex-col items-center gap-1 my-3 text-[13px] font-bold text-gray-700">
                 <div className="flex items-center gap-2">
