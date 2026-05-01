@@ -7,7 +7,7 @@ import { formatPrice, formatDate } from "@/lib/utils";
 import {
   ArrowRight, TrendingUp, TrendingDown, Calendar,
   DollarSign, Package, ShoppingCart, Users, Clock,
-  BarChart3, PieChart, Activity, Layers, Eye, X
+  BarChart3, PieChart, Activity, Layers, Eye, X, Printer
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -159,7 +159,7 @@ export default function ReportsPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-amber-200">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+      <header className={`bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm ${selectedInvoice ? 'no-print' : ''}`}>
         <div className="flex items-center gap-4">
           <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
             <ArrowRight className="w-6 h-6" />
@@ -227,7 +227,7 @@ export default function ReportsPage() {
         </div>
       )}
 
-      <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-8 animate-fade-in">
+      <div className={`p-4 md:p-6 max-w-7xl mx-auto space-y-8 animate-fade-in ${selectedInvoice ? 'no-print' : ''}`}>
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           <KpiCard title="إجمالي المبيعات" value={formatPrice(stats.totalSales)} icon={DollarSign} color="text-blue-600" bg="bg-blue-50" />
@@ -560,28 +560,44 @@ export default function ReportsPage() {
 
       {/* INVOICE DETAILS MODAL */}
       {selectedInvoice && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm no-print">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-fade-in">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50 no-print">
               <div>
                 <h3 className="font-black text-xl text-slate-900">تفاصيل الفاتورة <span className="text-blue-600">{selectedInvoice.invoiceNo}</span></h3>
                 <p className="text-sm font-bold text-slate-500 mt-1">{formatDate(selectedInvoice.createdAt)} • الكاشير: {selectedInvoice.user?.name || "-"}</p>
               </div>
-              <button onClick={() => setSelectedInvoice(null)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors shadow-sm">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-3">
+                <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors">
+                  <Printer className="w-4 h-4" />
+                  طباعة
+                </button>
+                <button onClick={() => setSelectedInvoice(null)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors shadow-sm">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             
+            {/* Print Header (Only visible during print) */}
+            <div className="hidden print:block text-center mb-4 border-b-2 border-dashed border-gray-200 pb-4 pt-4">
+              <h2 className="text-2xl font-black text-gray-900">أبناء سوهاج</h2>
+              <p className="text-sm text-gray-500 mt-1">نسخة من فاتورة مبيعات</p>
+              <p className="text-xs text-gray-400 font-mono">{selectedInvoice.invoiceNo}</p>
+              <p className="text-xs text-gray-400 mb-2">
+                {new Date(selectedInvoice.createdAt).toLocaleString("ar-EG")}
+              </p>
+            </div>
+
             <div className="flex-1 overflow-auto p-6">
               <table className="w-full text-sm text-right">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr className="text-slate-500 font-bold">
                     <th className="py-3 px-4">المنتج</th>
-                    <th className="py-3 px-4">القسم</th>
+                    <th className="py-3 px-4 no-print">القسم</th>
                     <th className="py-3 px-4 text-center">الكمية</th>
                     <th className="py-3 px-4">سعر الوحدة</th>
                     <th className="py-3 px-4">الإجمالي</th>
-                    <th className="py-3 px-4 text-emerald-600">الربح</th>
+                    <th className="py-3 px-4 text-emerald-600 no-print">الربح</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -590,11 +606,11 @@ export default function ReportsPage() {
                     return (
                       <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3 px-4 font-bold text-slate-900">{item.product.name}</td>
-                        <td className="py-3 px-4 text-slate-500 font-medium">{item.product.category?.name || "-"}</td>
+                        <td className="py-3 px-4 text-slate-500 font-medium no-print">{item.product.category?.name || "-"}</td>
                         <td className="py-3 px-4 text-center font-black text-slate-700">{item.quantity}</td>
                         <td className="py-3 px-4 font-bold text-slate-600">{formatPrice(item.price)}</td>
                         <td className="py-3 px-4 font-black text-blue-600">{formatPrice(item.total)}</td>
-                        <td className="py-3 px-4 font-black text-emerald-600">{formatPrice(profit)}</td>
+                        <td className="py-3 px-4 font-black text-emerald-600 no-print">{formatPrice(profit)}</td>
                       </tr>
                     );
                   })}
