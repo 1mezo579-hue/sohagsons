@@ -51,23 +51,26 @@ export async function POST(req: Request) {
         include: { items: { include: { product: true } }, customer: true }
       });
 
-      // 2. Decrease Stock and Add Logs
-      for (const item of items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } }
-        });
+      // 2. Decrease Stock (Concurrent)
+      await Promise.all(
+        items.map((item: any) => 
+          tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } }
+          })
+        )
+      );
 
-        await tx.stockLog.create({
-          data: {
-            productId: item.productId,
-            type: "out",
-            quantity: item.quantity,
-            reason: "sale",
-            notes: `فاتورة #${invoiceNo}`,
-          }
-        });
-      }
+      // 3. Add Logs (Batch Insert)
+      await tx.stockLog.createMany({
+        data: items.map((item: any) => ({
+          productId: item.productId,
+          type: "out",
+          quantity: item.quantity,
+          reason: "sale",
+          notes: `فاتورة #${invoiceNo}`,
+        }))
+      });
 
       // 3. Update Customer Points and Total Spent (if a customer is selected)
       if (customerId) {
@@ -84,6 +87,9 @@ export async function POST(req: Request) {
       }
 
       return newInvoice;
+    }, {
+      maxWait: 10000,
+      timeout: 20000,
     });
 
     return NextResponse.json(invoice, { status: 201 });
