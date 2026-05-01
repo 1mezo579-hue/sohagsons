@@ -10,7 +10,7 @@ async function main() {
   const cashierPassword = await bcrypt.hash("sales123", 10);
 
   const users = [
-    { username: "admin", password: hashedPassword, role: "admin", name: "إسلام (Owner)" },
+    { username: "admin", password: hashedPassword, role: "admin", name: "محمد حمدى (Owner)" },
     { username: "manager", password: managerPassword, role: "manager", name: "أحمد (مدير)" },
     { username: "cashier1", password: cashierPassword, role: "cashier", name: "كاشير 1" },
   ];
