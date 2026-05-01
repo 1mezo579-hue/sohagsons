@@ -3,43 +3,73 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+// ─── PUT: Update product ─────────────────────────────────────────────────────
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const id = Number(params.id);
+    if (!id) return NextResponse.json({ error: "معرّف المنتج غير صالح" }, { status: 400 });
+
     const body = await req.json();
+    const { name, barcode, categoryId, priceType, price, costPrice, stock, minStock, unit } = body;
+
+    if (!name?.trim()) {
+      return NextResponse.json({ error: "اسم المنتج مطلوب" }, { status: 400 });
+    }
+
     const product = await prisma.product.update({
-      where: { id: parseInt(params.id) },
+      where: { id },
       data: {
-        name: body.name,
-        barcode: body.barcode || null,
-        categoryId: parseInt(body.categoryId),
-        priceType: body.priceType,
-        price: parseFloat(body.price),
-        costPrice: parseFloat(body.costPrice) || 0,
-        stock: parseFloat(body.stock) || 0,
-        minStock: parseFloat(body.minStock) || 5,
-        unit: body.unit,
+        name: name.trim(),
+        barcode: barcode?.trim() || null,
+        categoryId: Number(categoryId),
+        priceType: priceType || "unit",
+        price: Number(price),
+        costPrice: Number(costPrice) || 0,
+        stock: Number(stock) || 0,
+        minStock: Number(minStock) || 5,
+        unit: unit || "piece",
       },
       include: { category: true },
     });
+
     return NextResponse.json(product);
-  } catch (error) {
-    console.error("PUT /api/products/[id] error:", error);
+  } catch (e: any) {
+    if (e.code === "P2002") {
+      return NextResponse.json({ error: "الباركود مستخدم لمنتج آخر" }, { status: 400 });
+    }
+    if (e.code === "P2025") {
+      return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+    }
+    console.error("PUT product error:", e.message);
     return NextResponse.json({ error: "فشل في تحديث المنتج" }, { status: 500 });
   }
 }
 
+// ─── DELETE: Remove product ───────────────────────────────────────────────────
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await prisma.product.delete({ where: { id: parseInt(params.id) } });
+    const id = Number(params.id);
+    if (!id) return NextResponse.json({ error: "معرّف المنتج غير صالح" }, { status: 400 });
+
+    await prisma.product.delete({ where: { id } });
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("DELETE /api/products/[id] error:", error);
+  } catch (e: any) {
+    if (e.code === "P2025") {
+      return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+    }
+    if (e.code === "P2003") {
+      return NextResponse.json(
+        { error: "لا يمكن حذف المنتج لوجود فواتير مرتبطة به" },
+        { status: 409 }
+      );
+    }
+    console.error("DELETE product error:", e.message);
     return NextResponse.json({ error: "فشل في حذف المنتج" }, { status: 500 });
   }
 }
