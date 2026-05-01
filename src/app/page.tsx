@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import { ShoppingCart, Package, BarChart3, Users, Store, ChevronLeft, LogOut } from "lucide-react";
+import { ShoppingCart, Package, BarChart3, Users, Store, ChevronLeft, LogOut, Wallet, Truck, Contact } from "lucide-react";
 
 const ALL_MODULES = [
   {
@@ -32,6 +32,33 @@ const ALL_MODULES = [
     href: "/reports",
     bg: "from-amber-500 to-orange-500",
     shadow: "shadow-amber-500/30",
+    roles: ["admin", "manager"],
+  },
+  {
+    title: "العملاء",
+    desc: "إدارة العملاء ونقاط الولاء والدليفري",
+    icon: Truck,
+    href: "/customers",
+    bg: "from-indigo-500 to-purple-600",
+    shadow: "shadow-indigo-500/30",
+    roles: ["admin", "manager", "cashier"],
+  },
+  {
+    title: "المصروفات",
+    desc: "تسجيل الإيجار والكهرباء والرواتب",
+    icon: Wallet,
+    href: "/expenses",
+    bg: "from-rose-500 to-red-600",
+    shadow: "shadow-red-500/30",
+    roles: ["admin", "manager"],
+  },
+  {
+    title: "التجار",
+    desc: "حسابات الموردين وفواتير الشراء",
+    icon: Contact,
+    href: "/traders",
+    bg: "from-slate-700 to-slate-900",
+    shadow: "shadow-slate-700/30",
     roles: ["admin", "manager"],
   },
   {

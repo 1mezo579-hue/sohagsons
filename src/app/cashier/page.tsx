@@ -38,6 +38,8 @@ export default function CashierPage() {
   const [weightInput, setWeightInput] = useState<{ productId: number; weight: string } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
 
   const barcodeRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -45,8 +47,17 @@ export default function CashierPage() {
 
   useEffect(() => {
     fetchProducts();
+    fetchCustomers();
     barcodeRef.current?.focus();
   }, []);
+
+  const fetchCustomers = async () => {
+    try {
+      const res = await fetch("/api/customers");
+      const data = await res.json();
+      setCustomers(Array.isArray(data) ? data : []);
+    } catch {}
+  };
 
   const fetchProducts = async () => {
     try {
@@ -134,6 +145,7 @@ export default function CashierPage() {
     const invoiceData = {
       invoiceNo: generateInvoiceNo(),
       userId: user?.id || 1,
+      customerId: selectedCustomer?.id || null,
       total: cart.getTotal(),
       discount: cart.discount,
       finalTotal: cart.getFinalTotal(),
@@ -158,6 +170,7 @@ export default function CashierPage() {
         setLastInvoice(invoice);
         setShowCheckout(false);
         setShowReceipt(true);
+        setSelectedCustomer(null);
         cart.clearCart();
         fetchProducts();
         toast.success("تم إتمام البيع بنجاح!");
@@ -536,6 +549,24 @@ export default function CashierPage() {
             </div>
 
             <div className="mb-4">
+              <label className="label block text-sm font-bold text-slate-700 mb-2">تسجيل الفاتورة باسم عميل (للنقاط والدليفري)</label>
+              <select 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700"
+                value={selectedCustomer?.id || ""}
+                onChange={(e) => {
+                  const id = parseInt(e.target.value);
+                  const c = customers.find(x => x.id === id);
+                  setSelectedCustomer(c || null);
+                }}
+              >
+                <option value="">-- زبون طياري (بدون تسجيل) --</option>
+                {customers.map(c => (
+                  <option key={c.id} value={c.id}>{c.name} - {c.phone}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
               <label className="label">طريقة الدفع</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -591,9 +622,15 @@ export default function CashierPage() {
               <h2 className="text-2xl font-black text-gray-900">أبناء سوهاج</h2>
               <p className="text-sm text-gray-500 mt-1">فاتورة مبيعات</p>
               <p className="text-xs text-gray-400 font-mono">{lastInvoice.invoiceNo}</p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 mb-2">
                 {new Date(lastInvoice.createdAt).toLocaleString("ar-EG")}
               </p>
+              {lastInvoice.customer && (
+                <div className="bg-gray-100 p-2 rounded-lg text-sm text-gray-700 font-bold">
+                  العميل: {lastInvoice.customer.name}
+                  <div className="text-xs font-normal mt-1">النقاط المكتسبة: {Math.floor(lastInvoice.finalTotal / 10)} نقطة</div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 mb-4 text-sm">

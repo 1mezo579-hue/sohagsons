@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -6,73 +6,88 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const invoices = await prisma.invoice.findMany({
-      include: { 
-        items: { include: { product: { include: { category: true } } } }, 
-        user: true 
+      include: {
+        user: { select: { name: true } },
+        customer: { select: { name: true, phone: true } },
+        items: {
+          include: {
+            product: { select: { name: true } }
+          }
+        }
       },
       orderBy: { createdAt: "desc" },
-      take: 100,
     });
     return NextResponse.json(invoices);
-  } catch (error) {
-    console.error("GET /api/invoices error:", error);
-    return NextResponse.json({ error: "فشل في جلب الفواتير" }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { items, ...invoiceData } = body;
+    const { invoiceNo, userId, customerId, total, discount, finalTotal, paymentType, items } = body;
 
-    const result = await prisma.$transaction(async (tx) => {
-      // Create invoice
-      const invoice = await tx.invoice.create({
+    const invoice = await prisma.$transaction(async (tx) => {
+      // 1. Create Invoice
+      const newInvoice = await tx.invoice.create({
         data: {
-          invoiceNo: invoiceData.invoiceNo,
-          userId: invoiceData.userId || 1,
-          total: parseFloat(invoiceData.total),
-          discount: parseFloat(invoiceData.discount) || 0,
-          finalTotal: parseFloat(invoiceData.finalTotal),
-          paymentType: invoiceData.paymentType || "cash",
+          invoiceNo,
+          userId,
+          customerId: customerId || null,
+          total,
+          discount,
+          finalTotal,
+          paymentType,
           items: {
             create: items.map((item: any) => ({
-              productId: parseInt(item.productId),
-              quantity: parseFloat(item.quantity),
-              price: parseFloat(item.price),
-              total: parseFloat(item.total),
-            })),
-          },
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              total: item.total,
+            }))
+          }
         },
-        include: { 
-          items: { include: { product: true } },
-          user: true
-        },
+        include: { items: true, customer: true }
       });
 
-      // Update stock & create stock logs
+      // 2. Decrease Stock and Add Logs
       for (const item of items) {
         await tx.product.update({
-          where: { id: parseInt(item.productId) },
-          data: { stock: { decrement: parseFloat(item.quantity) } },
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } }
         });
 
         await tx.stockLog.create({
           data: {
-            productId: parseInt(item.productId),
+            productId: item.productId,
             type: "out",
-            quantity: parseFloat(item.quantity),
+            quantity: item.quantity,
             reason: "sale",
-          },
+            notes: `فاتورة #${invoiceNo}`,
+          }
         });
       }
 
-      return invoice;
+      // 3. Update Customer Points and Total Spent (if a customer is selected)
+      if (customerId) {
+        // Assume 1 point for every 10 EGP spent
+        const pointsEarned = Math.floor(finalTotal / 10);
+        await tx.customer.update({
+          where: { id: customerId },
+          data: {
+            points: { increment: pointsEarned },
+            totalSpent: { increment: finalTotal }
+          }
+        });
+      }
+
+      return newInvoice;
     });
 
-    return NextResponse.json(result, { status: 201 });
-  } catch (error) {
-    console.error("POST /api/invoices error:", error);
-    return NextResponse.json({ error: "فشل في إنشاء الفاتورة" }, { status: 500 });
+    return NextResponse.json(invoice, { status: 201 });
+  } catch (e: any) {
+    console.error("Invoice error:", e);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
