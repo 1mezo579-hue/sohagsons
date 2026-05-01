@@ -41,7 +41,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { invoiceNo, userId, customerId, total, discount, finalTotal, paymentType, items } = body;
+    const { invoiceNo, userId, customerId, total, discount, finalTotal, paymentType, orderType, deliveryFee, items } = body;
 
     // Validation
     if (!invoiceNo || !userId || !items?.length) {
@@ -58,6 +58,8 @@ export async function POST(req: Request) {
         discount: Number(discount) || 0,
         finalTotal: Number(finalTotal),
         paymentType: paymentType || "cash",
+        orderType: orderType || "shop",
+        deliveryFee: Number(deliveryFee) || 0,
         items: {
           create: items.map((item: any) => ({
             productId: Number(item.productId),
@@ -74,6 +76,8 @@ export async function POST(req: Request) {
         discount: true,
         finalTotal: true,
         paymentType: true,
+        orderType: true,
+        deliveryFee: true,
         createdAt: true,
         customer: { select: { name: true, phone: true, points: true } },
         items: {

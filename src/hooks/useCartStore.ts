@@ -7,20 +7,24 @@ interface CartStore {
   items: CartItem[];
   discount: number;
   paymentType: string;
+  orderType: string;
   addItem: (item: CartItem) => void;
   removeItem: (productId: number) => void;
   updateQuantity: (productId: number, quantity: number) => void;
   setDiscount: (discount: number) => void;
   setPaymentType: (type: string) => void;
+  setOrderType: (type: string) => void;
   clearCart: () => void;
   getTotal: () => number;
   getFinalTotal: () => number;
+  getDeliveryFee: () => number;
 }
 
 export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
   discount: 0,
   paymentType: "cash",
+  orderType: "shop",
 
   addItem: (item) => {
     set((state) => {
@@ -60,13 +64,19 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
   setDiscount: (discount) => set({ discount }),
   setPaymentType: (type) => set({ paymentType: type }),
-  clearCart: () => set({ items: [], discount: 0 }),
+  setOrderType: (type) => set({ orderType: type }),
+  clearCart: () => set({ items: [], discount: 0, orderType: "shop" }),
 
   getTotal: () => {
     return get().items.reduce((sum, item) => sum + item.total, 0);
   },
 
+  getDeliveryFee: () => {
+    return get().orderType === "delivery" ? 5 : 0;
+  },
+
   getFinalTotal: () => {
-    return Math.max(0, get().getTotal() - get().discount);
+    const deliveryFee = get().getDeliveryFee();
+    return Math.max(0, get().getTotal() + deliveryFee - get().discount);
   },
 }));

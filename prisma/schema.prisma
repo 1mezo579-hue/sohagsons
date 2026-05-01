@@ -55,6 +55,8 @@ model Invoice {
   discount    Float         @default(0)
   finalTotal  Float
   paymentType String        @default("cash")
+  orderType   String        @default("shop")
+  deliveryFee Float         @default(0)
   createdAt   DateTime      @default(now())
   items       InvoiceItem[]
 }
