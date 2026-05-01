@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import toast from "react-hot-toast";
 import { formatPrice, formatDate } from "@/lib/utils";
-import { ArrowRight, Plus, Wallet, Search, Trash2, Tag, Calendar, Banknote } from "lucide-react";
+import { ArrowRight, Plus, Wallet, Search, Trash2, Tag, Calendar, Banknote, X } from "lucide-react";
 
 interface Expense {
   id: number;
