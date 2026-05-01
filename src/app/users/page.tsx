@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/hooks/useAuthStore";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import toast from "react-hot-toast";
 import {
   ArrowRight, Plus, Users, Shield, UserCog, Trash2,
@@ -58,8 +58,7 @@ const permissions = {
 };
 
 export default function UsersPage() {
-  const router = useRouter();
-  const { user, isLoggedIn, loadFromStorage } = useAuthStore();
+  const { user, isChecked } = useRequireAuth();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
@@ -71,18 +70,8 @@ export default function UsersPage() {
   });
 
   useEffect(() => {
-    loadFromStorage();
     fetchUsers();
   }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn && typeof window !== "undefined") {
-      const saved = localStorage.getItem("pos_user");
-      if (!saved) {
-        router.push("/login");
-      }
-    }
-  }, [isLoggedIn, router]);
 
   const fetchUsers = async () => {
     try {
@@ -159,6 +148,14 @@ export default function UsersPage() {
   const resetForm = () => {
     setForm({ name: "", username: "", password: "", role: "cashier" });
   };
+
+  if (!isChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <div className="w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-rose-200">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import toast from "react-hot-toast";
@@ -12,17 +12,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { isLoggedIn, login, loadFromStorage } = useAuthStore();
+  const { isLoggedIn, isChecked, login, loadFromStorage } = useAuthStore();
 
   useEffect(() => {
     loadFromStorage();
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      router.push("/");
+    if (isChecked && isLoggedIn) {
+      router.replace("/");
     }
-  }, [isLoggedIn, router]);
+  }, [isChecked, isLoggedIn, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +44,7 @@ export default function LoginPage() {
       if (res.ok) {
         login(data);
         toast.success(`مرحباً ${data.name}!`);
-        router.push("/");
+        router.replace("/");
       } else {
         toast.error(data.error || "فشل تسجيل الدخول");
       }
@@ -55,13 +55,22 @@ export default function LoginPage() {
     }
   };
 
+  // Show nothing while checking auth state
+  if (!isChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 relative overflow-hidden font-sans">
       {/* Background decorations */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-        <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[120px]"></div>
-        <div className="absolute top-[40%] -left-[10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10 blur-[120px]"></div>
-        <div className="absolute bottom-[10%] right-[20%] w-[30%] h-[30%] rounded-full bg-amber-400/8 blur-[100px]"></div>
+      <div className="absolute inset-0 overflow-hidden -z-10 pointer-events-none">
+        <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[120px]" />
+        <div className="absolute top-[40%] -left-[10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10 blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[20%] w-[30%] h-[30%] rounded-full bg-amber-300/8 blur-[100px]" />
       </div>
 
       <div className="w-full max-w-md animate-fade-in">
@@ -86,7 +95,7 @@ export default function LoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="مثال: admin"
+              placeholder="admin"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-lg font-bold text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               autoFocus
               dir="ltr"
@@ -125,7 +134,7 @@ export default function LoginPage() {
             className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed rounded-2xl font-bold text-white text-lg transition-all shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] hover:-translate-y-0.5 flex items-center justify-center gap-3"
           >
             {isLoading ? (
-              <span className="animate-spin text-2xl">⟳</span>
+              <span className="inline-block w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
               <LogIn className="w-6 h-6" />
             )}
@@ -133,9 +142,16 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-slate-400 mt-8 font-medium">
-          نظام إدارة سوبر ماركت أبناء سوهاج &copy; {new Date().getFullYear()}
+        {/* Hint */}
+        <div className="mt-6 text-center bg-white/60 backdrop-blur-md border border-slate-100 rounded-2xl p-4 shadow-sm">
+          <p className="text-[13px] font-bold text-slate-400 mb-2">بيانات الدخول الافتراضية:</p>
+          <div className="flex justify-center gap-6 text-[13px]">
+            <span className="font-mono font-black text-slate-700">admin / <span className="text-blue-600">102030</span></span>
+          </div>
+        </div>
+
+        <p className="text-center text-sm text-slate-400 mt-6 font-medium">
+          نظام أبناء سوهاج &copy; {new Date().getFullYear()}
         </p>
       </div>
     </main>

@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/hooks/useAuthStore";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { formatPrice, formatDate } from "@/lib/utils";
 import {
   ArrowRight, TrendingUp, TrendingDown, Calendar,
@@ -37,8 +36,7 @@ interface Invoice {
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4"];
 
 export default function ReportsPage() {
-  const router = useRouter();
-  const { user, isLoggedIn, loadFromStorage } = useAuthStore();
+  const { user, isChecked } = useRequireAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [dateRange, setDateRange] = useState<"today" | "week" | "month" | "custom">("today");
   const [customFrom, setCustomFrom] = useState(new Date().toISOString().split("T")[0]);
@@ -46,18 +44,8 @@ export default function ReportsPage() {
   const [activeView, setActiveView] = useState<"overview" | "invoices" | "products" | "analytics">("overview");
 
   useEffect(() => {
-    loadFromStorage();
     fetchInvoices();
   }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn && typeof window !== "undefined") {
-      const saved = localStorage.getItem("pos_user");
-      if (!saved) {
-        router.push("/login");
-      }
-    }
-  }, [isLoggedIn, router]);
 
   const fetchInvoices = async () => {
     try {
@@ -158,6 +146,14 @@ export default function ReportsPage() {
     month: "آخر 30 يوم",
     custom: "فترة مخصصة",
   };
+
+  if (!isChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-amber-200">

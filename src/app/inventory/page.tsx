@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/hooks/useAuthStore";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { formatPrice } from "@/lib/utils";
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
@@ -34,24 +33,10 @@ interface Category {
 }
 
 export default function InventoryPage() {
-  const router = useRouter();
-  const { user, isLoggedIn, loadFromStorage } = useAuthStore();
+  const { user, isChecked } = useRequireAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  useEffect(() => {
-    loadFromStorage();
-  }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn && typeof window !== "undefined") {
-      const saved = localStorage.getItem("pos_user");
-      if (!saved) {
-        router.push("/login");
-      }
-    }
-  }, [isLoggedIn, router]);
-
   const [activeTab, setActiveTab] = useState<"products" | "stock" | "categories">("products");
   
   // Modals state
@@ -246,6 +231,14 @@ export default function InventoryPage() {
   const lowStockProducts = products.filter((p) => p.stock <= p.minStock);
   const totalStockValue = products.reduce((s, p) => s + p.stock * p.costPrice, 0);
   const lowStockCount = lowStockProducts.length;
+
+  if (!isChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen text-slate-800 font-sans selection:bg-blue-500/30">

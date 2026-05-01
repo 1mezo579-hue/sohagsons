@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/hooks/useAuthStore";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useCartStore } from "@/hooks/useCartStore";
 import { formatPrice, generateInvoiceNo } from "@/lib/utils";
 import { CartItem } from "@/types";
@@ -21,14 +21,14 @@ interface Product {
   price: number;
   costPrice: number;
   stock: number;
+  minStock: number;
   priceType: string;
   unit: string;
   category: { name: string };
 }
 
 export default function CashierPage() {
-  const router = useRouter();
-  const { isLoggedIn, loadFromStorage } = useAuthStore();
+  const { user, isChecked } = useRequireAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -44,19 +44,9 @@ export default function CashierPage() {
   const cart = useCartStore();
 
   useEffect(() => {
-    loadFromStorage();
     fetchProducts();
     barcodeRef.current?.focus();
   }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn && typeof window !== "undefined") {
-      const saved = localStorage.getItem("pos_user");
-      if (!saved) {
-        router.push("/login");
-      }
-    }
-  }, [isLoggedIn, router]);
 
   const fetchProducts = async () => {
     try {
@@ -239,6 +229,14 @@ export default function CashierPage() {
       clearTimeout(timeout);
     };
   }, [products, cart]);
+
+  if (!isChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-[#f8fafc] flex flex-col animate-fade-in text-slate-800">
