@@ -14,6 +14,8 @@ export async function GET() {
         discount: true,
         finalTotal: true,
         paymentType: true,
+        orderType: true,
+        deliveryFee: true,
         createdAt: true,
         user: { select: { name: true } },
         customer: { select: { name: true, phone: true } },
