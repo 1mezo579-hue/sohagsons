@@ -214,6 +214,15 @@ async function main() {
     {
       name: "عناية شخصية وصابون",
       products: [
+        { name: "ريكسونا سبراي رجالي 150 مل", costPrice: 155, price: 185, barcode: "6221019102111" },
+        { name: "ريكسونا سبراي حريمي 150 مل", costPrice: 155, price: 185, barcode: "6221019102128" },
+        { name: "ريكسونا رول أون 50 مل", costPrice: 90, price: 110, barcode: "6221019102135" },
+        { name: "كريم فاتيكا شعر 140 جم", costPrice: 55, price: 65, barcode: "6221020102111" },
+        { name: "كريم فاتيكا شعر 210 جم", costPrice: 72, price: 85, barcode: "6221020102128" },
+        { name: "شامبو فاتيكا 400 مل", costPrice: 115, price: 135, barcode: "6221020102135" },
+        { name: "شامبو فاتيكا 600 مل", costPrice: 150, price: 175, barcode: "6221020102142" },
+        { name: "شامبو سباركل 400 مل", costPrice: 100, price: 120, barcode: "6221021102111" },
+        { name: "شامبو سباركل 600 مل", costPrice: 130, price: 155, barcode: "6221021102128" },
         { name: "شامبو صانسيلك 400 مل", costPrice: 55, price: 70, barcode: "6221019101111" },
         { name: "شامبو صانسيلك 600 مل", costPrice: 85, price: 105, barcode: "6221019101128" },
         { name: "شامبو كلير للرجال 400 مل", costPrice: 65, price: 80, barcode: "6221020101111" },
