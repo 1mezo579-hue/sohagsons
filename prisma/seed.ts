@@ -47,78 +47,82 @@ async function main() {
   }
 
   // 3. Categories & Products
-  // 0. Clean Existing Data (Order matters for Foreign Keys)
-  console.log("Cleaning existing data...");
-  await prisma.invoiceItem.deleteMany({});
-  await prisma.invoice.deleteMany({});
-  await prisma.stockLog.deleteMany({});
-  await prisma.traderInvoiceItem.deleteMany({});
-  await prisma.traderInvoice.deleteMany({});
-  await prisma.expense.deleteMany({});
-  await prisma.product.deleteMany({});
-  await prisma.category.deleteMany({});
-  await prisma.trader.deleteMany({});
-  await prisma.customer.deleteMany({});
-
   const categoriesData = [
     {
       name: "ألبان وأجبان",
       products: [
-        { name: "لبن جهينة كامل الدسم 1 لتر", costPrice: 42, price: 48, barcode: "6221000000169" },
-        { name: "لبن المراعي كامل الدسم 1 لتر", costPrice: 42, price: 48, barcode: "6221001000251" },
-        { name: "لبن بخيره نصف لتر", costPrice: 15.5, price: 18, barcode: "6221000000213" },
-        { name: "زبادي جهينة طبيعي 105جم", costPrice: 6.75, price: 8, barcode: "6221000000114" },
-        { name: "جبنة دومتي فيتا 500جم", costPrice: 36, price: 42, barcode: "6221000010212" },
-        { name: "جبنة عبور لاند تتراباك 250جم", costPrice: 18.5, price: 22, barcode: "6221000020112" },
-        { name: "جبنة رومي قديم (كجم)", costPrice: 240, price: 280, barcode: "PLU001", priceType: "weight", unit: "kg" },
+        { name: "لبن جهينة كامل الدسم 1 لتر", costPrice: 38, price: 45, barcode: "6221000001234" },
+        { name: "لبن المراعي 1 لتر", costPrice: 38, price: 45, barcode: "6221000001235" },
+        { name: "جبنة دومتي فيتا 500جم", costPrice: 35, price: 42, barcode: "6221000001236" },
+        { name: "جبنة عبور لاند تتراباك 250جم", costPrice: 18, price: 22, barcode: "6221000001237" },
+        { name: "زبادي جهينة كبير", costPrice: 7, price: 9, barcode: "6221000001238" },
+        { name: "جبنة رومي قديم (كجم)", costPrice: 220, price: 260, barcode: "PLU001", priceType: "weight", unit: "kg" },
+        { name: "لانشون حلواني سادة (كجم)", costPrice: 180, price: 220, barcode: "PLU002", priceType: "weight", unit: "kg" },
       ]
     },
     {
       name: "مشروبات وكانز",
       products: [
-        { name: "بيبسي كانز 330 مل", costPrice: 10.5, price: 12, barcode: "6221002000112" },
-        { name: "كوكاكولا 1.5 لتر", costPrice: 21, price: 25, barcode: "6221003000212" },
-        { name: "مياه معدنية صافي 1.5 لتر", costPrice: 5.5, price: 8, barcode: "6221004000111" },
-        { name: "ريد بول كانز", costPrice: 42, price: 55, barcode: "9002490100070" },
+        { name: "كوكاكولا 1.5 لتر", costPrice: 18, price: 22, barcode: "6221000001239" },
+        { name: "بيبسي كانز", costPrice: 10, price: 12, barcode: "6221000001240" },
+        { name: "مياه معدنية صافي 1.5 لتر", costPrice: 5, price: 7, barcode: "6221000001241" },
+        { name: "ريد بول كانز", costPrice: 35, price: 45, barcode: "6221000001242" },
       ]
     },
     {
       name: "زيوت وسمن وأرز",
       products: [
-        { name: "زيت كريستال ذرة 800مل", costPrice: 95, price: 110, barcode: "6221005000113" },
-        { name: "سمنة روابي 700جم", costPrice: 82, price: 95, barcode: "6221006000214" },
-        { name: "أرز الضحى 1كجم", costPrice: 34, price: 40, barcode: "6221007000315" },
-        { name: "مكرونة الملكة 400جم", costPrice: 12.5, price: 15, barcode: "6221008000416" },
+        { name: "زيت كريستال ذرة 800مل", costPrice: 90, price: 105, barcode: "6221000001243" },
+        { name: "سمنة روابي 700جم", costPrice: 85, price: 98, barcode: "6221000001244" },
+        { name: "أرز الضحى 1كجم", costPrice: 30, price: 35, barcode: "6221000001245" },
+        { name: "مكرونة الملكة 400جم", costPrice: 12, price: 15, barcode: "6221000001246" },
       ]
     },
 
+      ]
+    },
     {
       name: "مخبوزات وبسكويت",
       products: [
-        { name: "مولتو شوكولاتة ماجنم", costPrice: 8.5, price: 10, barcode: "6223000100412" },
-        { name: "تودو براونيز شوكولاتة", costPrice: 4.25, price: 5, barcode: "6223000101123" },
-        { name: "بسكويت أوريو 6 قطع", costPrice: 6.5, price: 8, barcode: "7622210813083" },
-        { name: "بسكويت بيمبو كبير", costPrice: 4.25, price: 5, barcode: "6223000102211" },
-        { name: "ويفر فريسكا شوكولاتة", costPrice: 2.5, price: 3, barcode: "6224000140221" },
-        { name: "عيش توست ريتش بيك", costPrice: 38, price: 45, barcode: "6223000105512" },
+        { name: "مولتو شوكولاتة ماجنم", costPrice: 8, price: 10 },
+        { name: "تودو براونيز", costPrice: 4, price: 5 },
+        { name: "هوهوز", costPrice: 4, price: 5 },
+        { name: "توينكيز", costPrice: 4, price: 5 },
+        { name: "بسكويت داتو", costPrice: 4, price: 5 },
+        { name: "بسكويت لمبادا", costPrice: 2.5, price: 3 },
+        { name: "بسكويت أوريو 4 قطع", costPrice: 4, price: 5 },
+        { name: "بسكويت بيمبو", costPrice: 4, price: 5 },
+        { name: "ويفر فريسكا", costPrice: 2.5, price: 3 },
+        { name: "عيش فينو (كيس 5 رغيف)", costPrice: 8, price: 10 },
+        { name: "عيش توست ريتش بيك", costPrice: 35, price: 45 },
       ]
     },
     {
       name: "شوكولاتة وحلويات",
       products: [
-        { name: "شوكولاتة كادبوري سادة 37جم", costPrice: 17, price: 20, barcode: "7622201420139" },
-        { name: "شوكولاتة جلاكسي بالبندق", costPrice: 21, price: 25, barcode: "6221034001121" },
-        { name: "شوكولاتة سنيكرز كبير", costPrice: 18, price: 22, barcode: "5000159461122" },
-        { name: "جيلي كولا هاريبو 80جم", costPrice: 28, price: 35, barcode: "8691216016331" },
+        { name: "شوكولاتة كادبوري سادة", costPrice: 15, price: 20 },
+        { name: "شوكولاتة جلاكسي بندق", costPrice: 18, price: 25 },
+        { name: "شوكولاتة سنيكرز", costPrice: 12, price: 15 },
+        { name: "شوكولاتة كيت كات 4 أصابع", costPrice: 12, price: 15 },
+        { name: "شوكولاتة باونتي", costPrice: 12, price: 15 },
+        { name: "شوكولاتة مورو", costPrice: 8, price: 10 },
+        { name: "بونبون سيلا الميزان (وزن)", costPrice: 80, price: 100, priceType: "weight", unit: "kg" },
+        { name: "ملبس طوفي (وزن)", costPrice: 60, price: 80, priceType: "weight", unit: "kg" },
+        { name: "جيلي كولا هاريبو", costPrice: 25, price: 35 },
       ]
     },
     {
-      name: "شاي وقهوة ومشروبات",
+      name: "شاي وقهوة ومشروبات ساخنة",
       products: [
-        { name: "شاي ليبتون ناعم 250جم", costPrice: 42, price: 50, barcode: "6221000002121" },
-        { name: "شاي العروسة ناعم 250جم", costPrice: 35, price: 40, barcode: "6221000003112" },
-        { name: "نسكافيه بلاك 50جم", costPrice: 48, price: 55, barcode: "7613035311212" },
-        { name: "بن عبد المعبود محوج 200جم", costPrice: 75, price: 90, barcode: "6221000004221" },
+        { name: "شاي ليبتون 250 جم", costPrice: 35, price: 42 },
+        { name: "شاي العروسة 250 جم", costPrice: 30, price: 35 },
+        { name: "شاي أحمد تي فتلة 100 فتلة", costPrice: 80, price: 95 },
+        { name: "نسكافيه كلاسيك 50 جم", costPrice: 45, price: 55 },
+        { name: "نسكافيه جولد 100 جم", costPrice: 120, price: 150 },
+        { name: "بن عبد المعبود محوج 200 جم", costPrice: 50, price: 60 },
+        { name: "بن أبو عوف سادة 250 جم", costPrice: 60, price: 75 },
+        { name: "كاكاو كورونا", costPrice: 25, price: 30 },
+        { name: "سحلب حلو الشام", costPrice: 20, price: 25 },
       ]
     },
     {
@@ -189,53 +193,44 @@ async function main() {
     {
       name: "منظفات وعناية بالمنزل",
       products: [
-        { name: "ديتول مطهر 125 مل", costPrice: 48, price: 55, barcode: "6221062010111" },
-        { name: "ديتول مطهر 250 مل", costPrice: 82, price: 95, barcode: "6221062010128" },
-        { name: "ديتول مطهر 500 مل", costPrice: 140, price: 165, barcode: "6221062010135" },
-        { name: "ديتول مطهر 725 مل", costPrice: 185, price: 210, barcode: "6221062010142" },
-        { name: "برسيل جيل لافندر 1 لتر", costPrice: 65, price: 75, barcode: "6221012101111" },
-        { name: "برسيل جيل 2.5 لتر", costPrice: 155, price: 180, barcode: "6221012101128" },
-        { name: "برسيل جيل 3.9 لتر", costPrice: 220, price: 260, barcode: "6221012101135" },
-        { name: "إريال أوتوماتيك 2.5 كجم", costPrice: 160, price: 185, barcode: "6221013101111" },
-        { name: "إريال أوتوماتيك 4 كجم", costPrice: 245, price: 280, barcode: "6221013101128" },
-        { name: "إريال أوتوماتيك 6 كجم", costPrice: 360, price: 410, barcode: "6221013101135" },
-        { name: "تايد أوتوماتيك 2.5 كجم", costPrice: 145, price: 170, barcode: "6221014101111" },
-        { name: "أوكسي أوتوماتيك 3 كجم", costPrice: 135, price: 160, barcode: "6221015101111" },
-        { name: "صابون سائل فيري 1 لتر", costPrice: 38, price: 45, barcode: "6221016101111" },
-        { name: "صابون سائل فيبا 2 لتر", costPrice: 42, price: 50, barcode: "6221017101111" },
-        { name: "كلوروكس ألوان 1 لتر", costPrice: 24, price: 30, barcode: "6221018101111" },
-        { name: "مكنسة خشب (يد)", costPrice: 35, price: 45, barcode: "CLEAN001" },
-        { name: "مكنسة ناعمة تركي", costPrice: 50, price: 65, barcode: "CLEAN002" },
-        { name: "مساحة بلاستيك عريضة", costPrice: 28, price: 35, barcode: "CLEAN003" },
-        { name: "مساحة جلد كبيرة", costPrice: 45, price: 55, barcode: "CLEAN004" },
-        { name: "جاروف بلاستيك يد", costPrice: 15, price: 20, barcode: "CLEAN005" },
+        { name: "مسحوق إريال أوتوماتيك 2.5 كجم", costPrice: 140, price: 165 },
+        { name: "مسحوق برسيل أوتوماتيك 3 كجم", costPrice: 130, price: 155 },
+        { name: "مسحوق تايْد يدوي 500 جم", costPrice: 20, price: 25 },
+        { name: "مسحوق أوكسي 2 كجم", costPrice: 90, price: 110 },
+        { name: "صابون سائل بريل 1 لتر", costPrice: 30, price: 38 },
+        { name: "صابون سائل فيري 1 لتر", costPrice: 35, price: 45 },
+        { name: "صابون سائل فيبا 2 لتر", costPrice: 40, price: 50 },
+        { name: "منظف زجاج جليد", costPrice: 25, price: 32 },
+        { name: "منظف تواليت هاربيك", costPrice: 35, price: 45 },
+        { name: "كلوروكس ألوان 1 لتر", costPrice: 22, price: 28 },
+        { name: "كلور أبيض زجاجة", costPrice: 10, price: 15 },
+        { name: "ديتول مطهر 500 مل", costPrice: 85, price: 110 },
+        { name: "معطر جو فريدا", costPrice: 45, price: 55 },
+        { name: "مناديل فاين 550 منديل (3 قطع)", costPrice: 50, price: 65 },
+        { name: "مناديل زينة تواليت (بكرة)", costPrice: 5, price: 8 },
+        { name: "ورق فويل سانيتا", costPrice: 40, price: 50 },
+        { name: "أكياس قمامة كبيرة", costPrice: 25, price: 35 },
+        { name: "سلك مواعين (وزن)", costPrice: 40, price: 60, priceType: "weight", unit: "kg" },
+        { name: "ليفة غسيل أطباق", costPrice: 10, price: 15 },
       ]
     },
     {
       name: "عناية شخصية وصابون",
       products: [
-        { name: "ريكسونا سبراي رجالي 150 مل", costPrice: 155, price: 185, barcode: "6221019102111" },
-        { name: "ريكسونا سبراي حريمي 150 مل", costPrice: 155, price: 185, barcode: "6221019102128" },
-        { name: "ريكسونا رول أون 50 مل", costPrice: 90, price: 110, barcode: "6221019102135" },
-        { name: "كريم فاتيكا شعر 140 جم", costPrice: 55, price: 65, barcode: "6221020102111" },
-        { name: "كريم فاتيكا شعر 210 جم", costPrice: 72, price: 85, barcode: "6221020102128" },
-        { name: "شامبو فاتيكا 400 مل", costPrice: 115, price: 135, barcode: "6221020102135" },
-        { name: "شامبو فاتيكا 600 مل", costPrice: 150, price: 175, barcode: "6221020102142" },
-        { name: "شامبو سباركل 400 مل", costPrice: 100, price: 120, barcode: "6221021102111" },
-        { name: "شامبو سباركل 600 مل", costPrice: 130, price: 155, barcode: "6221021102128" },
-        { name: "شامبو صانسيلك 400 مل", costPrice: 55, price: 70, barcode: "6221019101111" },
-        { name: "شامبو صانسيلك 600 مل", costPrice: 85, price: 105, barcode: "6221019101128" },
-        { name: "شامبو كلير للرجال 400 مل", costPrice: 65, price: 80, barcode: "6221020101111" },
-        { name: "شامبو بانتين 400 مل", costPrice: 60, price: 75, barcode: "6221021101111" },
-        { name: "شامبو بانتين 600 مل", costPrice: 95, price: 120, barcode: "6221021101128" },
-        { name: "شامبو دوف 400 مل", costPrice: 70, price: 90, barcode: "6221022101111" },
-        { name: "صابون لوكس 120 جم", costPrice: 12, price: 15, barcode: "6221023101111" },
-        { name: "صابون دوف 100 جم", costPrice: 25, price: 35, barcode: "6221024101111" },
-        { name: "صابون ديتول 120 جم", costPrice: 15, price: 20, barcode: "6221025101111" },
-        { name: "معجون أسنان سيجنال 100 مل", costPrice: 28, price: 35, barcode: "6221026101111" },
-        { name: "فرشاة أسنان أورال بي", costPrice: 25, price: 35, barcode: "6221027101111" },
-        { name: "شفرات حلاقة جيليت بلو 3 (قطعة)", costPrice: 35, price: 45, barcode: "6221028101111" },
-        { name: "حفاضات بامبرز مقاس 4 (عبوة)", costPrice: 220, price: 265, barcode: "6221029101111" },
+        { name: "شامبو صانسيلك 400 مل", costPrice: 55, price: 70 },
+        { name: "شامبو كلير للرجال 400 مل", costPrice: 65, price: 80 },
+        { name: "شامبو بانتين 400 مل", costPrice: 60, price: 75 },
+        { name: "صابون لوكس 120 جم", costPrice: 12, price: 15 },
+        { name: "صابون دوف 100 جم", costPrice: 25, price: 35 },
+        { name: "صابون كامي 120 جم", costPrice: 10, price: 13 },
+        { name: "صابون ديتول 120 جم", costPrice: 15, price: 20 },
+        { name: "معجون أسنان سيجنال 100 مل", costPrice: 25, price: 35 },
+        { name: "معجون أسنان كولجيت 100 مل", costPrice: 30, price: 40 },
+        { name: "فرشاة أسنان أورال بي", costPrice: 25, price: 35 },
+        { name: "شفرات حلاقة جيليت بلو 3", costPrice: 35, price: 45 },
+        { name: "فوط صحية أولويز الترا", costPrice: 30, price: 40 },
+        { name: "حفاضات بامبرز مقاس 4", costPrice: 200, price: 250 },
+        { name: "حفاضات بيبي جوي مقاس 4", costPrice: 180, price: 220 },
       ]
     }
   ];
@@ -243,19 +238,24 @@ async function main() {
   let barcodeCounter = 622100000;
 
   for (const cData of categoriesData) {
-    const category = await prisma.category.create({
-      data: { name: cData.name },
+    const category = await prisma.category.upsert({
+      where: { name: cData.name },
+      update: {},
+      create: { name: cData.name },
     });
 
     for (const pData of cData.products) {
-      await prisma.product.create({
-        data: {
-          ...pData,
-          barcode: pData.barcode || (barcodeCounter++).toString(),
-          categoryId: category.id,
-          stock: Math.floor(Math.random() * 50) + 20,
-        },
-      });
+      const exists = await prisma.product.findFirst({ where: { name: pData.name } });
+      if (!exists) {
+        await prisma.product.create({
+          data: {
+            ...pData,
+            barcode: (barcodeCounter++).toString(),
+            categoryId: category.id,
+            stock: Math.floor(Math.random() * 50) + 10, // رصيد افتراضي عشوائي
+          },
+        });
+      }
     }
   }
 
