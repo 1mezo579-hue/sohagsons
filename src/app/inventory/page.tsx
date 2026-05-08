@@ -387,7 +387,7 @@ export default function InventoryPage() {
                             </div>
                           </td>
                           <td className="py-5 px-6">
-                            <span className="bg-purple-50 text-purple-700 border border-purple-100 px-3 py-1.5 rounded-xl font-bold text-[13px] shadow-sm">{product.category.name}</span>
+                            <span className="bg-purple-50 text-purple-700 border border-purple-100 px-3 py-1.5 rounded-xl font-bold text-[13px] shadow-sm">{product.category?.name || "عام"}</span>
                           </td>
                           <td className="py-5 px-6 opacity-50 group-hover:opacity-100 transition-opacity">
                             <div className="flex items-center gap-2">

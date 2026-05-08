@@ -19,6 +19,7 @@ export async function GET() {
         unit: true,
         synced: true,
         categoryId: true,
+        category: { select: { name: true } },
       },
       orderBy: { name: "asc" },
     });
