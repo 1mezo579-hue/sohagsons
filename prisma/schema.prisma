@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
+  password  String
+  role      String    @default("cashier")
+  name      String
+  createdAt DateTime  @default(now())
+  invoices  Invoice[]
+  expenses  Expense[]
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id                Int                @id @default(autoincrement())
+  name              String
+  barcode           String?            @unique
+  categoryId        Int
+  category          Category           @relation(fields: [categoryId], references: [id])
+  priceType         String             @default("unit")
+  price             Float
+  costPrice         Float
+  stock             Float              @default(0)
+  minStock          Float              @default(5)
+  unit              String             @default("piece")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  invoiceItems      InvoiceItem[]
+  stockLogs         StockLog[]
+  traderInvoiceItems TraderInvoiceItem[]
+}
+
+model Invoice {
+  id          Int           @id @default(autoincrement())
+  invoiceNo   String        @unique
+  userId      Int
+  user        User          @relation(fields: [userId], references: [id])
+  customerId  Int?
+  customer    Customer?     @relation(fields: [customerId], references: [id])
+  total       Float
+  discount    Float         @default(0)
+  finalTotal  Float
+  paymentType String        @default("cash")
+  orderType   String        @default("shop")
+  deliveryFee Float         @default(0)
+  createdAt   DateTime      @default(now())
+  items       InvoiceItem[]
+}
+
+model InvoiceItem {
+  id        Int     @id @default(autoincrement())
+  invoiceId Int
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Float
+  price     Float
+  total     Float
+}
+
+model StockLog {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  type      String
+  quantity  Float
+  reason    String
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+}
+
+// ===== العملاء والنقاط =====
+model Customer {
+  id         Int       @id @default(autoincrement())
+  name       String
+  phone      String    @unique
+  address    String?
+  points     Float     @default(0)
+  totalSpent Float     @default(0)
+  balance    Float     @default(0) // الرصيد الآجل المستحق على العميل
+  notes      String?
+  createdAt  DateTime  @default(now())
+  invoices   Invoice[]
+}
+
+// ===== المصروفات =====
+model Expense {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  category    String   // إيجار، كهرباء، رواتب، مشتريات، صيانة، نقل، أخرى
+  description String?
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+// ===== التجار =====
+model Trader {
+  id        Int             @id @default(autoincrement())
+  name      String
+  phone     String?
+  company   String?
+  address   String?
+  balance   Float           @default(0) // positive = له علينا، negative = عليه لنا
+  notes     String?
+  createdAt DateTime        @default(now())
+  invoices  TraderInvoice[]
+}
+
+model TraderInvoice {
+  id        Int                @id @default(autoincrement())
+  invoiceNo String             @unique
+  traderId  Int
+  trader    Trader             @relation(fields: [traderId], references: [id])
+  total     Float
+  paid      Float              @default(0)
+  remaining Float
+  status    String             @default("pending") // pending, partial, paid
+  notes     String?
+  createdAt DateTime           @default(now())
+  items     TraderInvoiceItem[]
+}
+
+model TraderInvoiceItem {
+  id              Int           @id @default(autoincrement())
+  traderInvoiceId Int
+  traderInvoice   TraderInvoice @relation(fields: [traderInvoiceId], references: [id], onDelete: Cascade)
+  productId       Int?
+  product         Product?      @relation(fields: [productId], references: [id])
+  description     String
+  quantity        Float
+  price           Float
+  total           Float
+}
