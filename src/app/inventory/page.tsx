@@ -38,6 +38,7 @@ export default function InventoryPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"products" | "stock" | "categories">("products");
+  const [visibleCount, setVisibleCount] = useState(20);
   
   // Modals state
   const [showProductForm, setShowProductForm] = useState(false);
@@ -228,6 +229,11 @@ export default function InventoryPage() {
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.barcode?.includes(searchQuery)
   );
 
+  const displayedProducts = filteredProducts.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredProducts.length;
+
+  useEffect(() => { setVisibleCount(20); }, [searchQuery]);
+
   const lowStockProducts = products.filter((p) => p.stock <= p.minStock);
   const totalStockValue = products.reduce((s, p) => s + p.stock * p.costPrice, 0);
   const lowStockCount = lowStockProducts.length;
@@ -367,7 +373,7 @@ export default function InventoryPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {filteredProducts.map((product) => (
+                      {displayedProducts.map((product) => (
                         <tr key={product.id} className={`hover:bg-slate-50/80 transition-colors group ${product.stock <= product.minStock ? "bg-rose-50/30" : ""}`}>
                           <td className="py-5 px-6 font-black text-slate-800 text-[16px]">{product.name}</td>
                           <td className="py-5 px-6 text-slate-400 font-mono text-[14px] font-bold">
@@ -399,6 +405,17 @@ export default function InventoryPage() {
                   </table>
                 </div>
               </div>
+
+              {hasMore && (
+                <div className="flex justify-center pt-4">
+                  <button 
+                    onClick={() => setVisibleCount(prev => prev + 50)}
+                    className="px-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-black transition-all border-2 border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1"
+                  >
+                    تحميل المزيد من المنتجات ({filteredProducts.length - visibleCount} متبقي)
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

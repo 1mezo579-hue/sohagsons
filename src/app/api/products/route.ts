@@ -17,8 +17,8 @@ export async function GET() {
         minStock: true,
         priceType: true,
         unit: true,
-        createdAt: true,
-        category: { select: { id: true, name: true } },
+        synced: true,
+        categoryId: true,
       },
       orderBy: { name: "asc" },
     });

@@ -40,6 +40,7 @@ export default function CashierPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [visibleCount, setVisibleCount] = useState(24);
 
   const barcodeRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -137,6 +138,11 @@ export default function CashierPage() {
     const matchesCategory = selectedCategory === "all" || (p.category?.name || "غير مصنف") === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const displayedProducts = filteredProducts.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredProducts.length;
+
+  useEffect(() => { setVisibleCount(24); }, [searchQuery, selectedCategory]);
 
   const handleCheckout = async () => {
     if (cart.items.length === 0) return toast.error("السلة فارغة!");
@@ -368,7 +374,7 @@ export default function CashierPage() {
               <span className="font-bold">المنتجات المتاحة ({filteredProducts.length})</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
-              {filteredProducts.map((product) => (
+              {displayedProducts.map((product) => (
                 <button
                   key={product.id}
                   onClick={() => {
@@ -403,6 +409,17 @@ export default function CashierPage() {
                 </button>
               ))}
             </div>
+
+            {hasMore && (
+              <div className="flex justify-center pt-4">
+                <button 
+                  onClick={() => setVisibleCount(prev => prev + 24)}
+                  className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black transition-all border border-slate-200 shadow-sm"
+                >
+                  تحميل المزيد من الأصناف ({filteredProducts.length - visibleCount})
+                </button>
+              </div>
+            )}
             {filteredProducts.length === 0 && (
               <div className="text-center py-16 text-slate-400">
                 <Package className="w-16 h-16 mx-auto mb-3 opacity-20" />

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model User {
@@ -32,15 +33,19 @@ model Product {
   category          Category           @relation(fields: [categoryId], references: [id])
   priceType         String             @default("unit")
   price             Float
-  costPrice         Float
+  costPrice         Float              @default(0)
   stock             Float              @default(0)
   minStock          Float              @default(5)
   unit              String             @default("piece")
+  synced            Boolean            @default(false)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   invoiceItems      InvoiceItem[]
   stockLogs         StockLog[]
   traderInvoiceItems TraderInvoiceItem[]
+
+  @@index([name])
+  @@index([barcode])
 }
 
 model Invoice {
@@ -56,6 +61,7 @@ model Invoice {
   paymentType String        @default("cash")
   orderType   String        @default("shop")
   deliveryFee Float         @default(0)
+  synced      Boolean       @default(false)
   createdAt   DateTime      @default(now())
   items       InvoiceItem[]
 }
