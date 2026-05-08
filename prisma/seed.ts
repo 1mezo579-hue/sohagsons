@@ -78,9 +78,6 @@ async function main() {
         { name: "مكرونة الملكة 400جم", costPrice: 12, price: 15, barcode: "6221000001246" },
       ]
     },
-
-      ]
-    },
     {
       name: "مخبوزات وبسكويت",
       products: [
