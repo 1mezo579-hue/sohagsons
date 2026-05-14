@@ -20,7 +20,7 @@ export async function POST(req: Request) {
           continue;
         }
 
-        let categoryId = 1;
+        let categoryId = null;
         if (item.category) {
           // Find or create category
           let category = await prisma.category.findUnique({ where: { name: item.category } });

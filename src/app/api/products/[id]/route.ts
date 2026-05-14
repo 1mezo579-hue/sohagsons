@@ -24,7 +24,7 @@ export async function PUT(
       data: {
         name: name.trim(),
         barcode: barcode?.trim() || null,
-        categoryId: Number(categoryId),
+        categoryId: categoryId ? Number(categoryId) : null,
         priceType: priceType || "unit",
         price: Number(price),
         costPrice: Number(costPrice) || 0,

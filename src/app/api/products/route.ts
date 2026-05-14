@@ -36,15 +36,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, barcode, categoryId, priceType, price, costPrice, stock, minStock, unit } = body;
 
-    if (!name?.trim() || !categoryId || !price) {
-      return NextResponse.json({ error: "الاسم والقسم والسعر مطلوبة" }, { status: 400 });
+    if (!name?.trim() || price === undefined) {
+      return NextResponse.json({ error: "الاسم والسعر مطلوبان" }, { status: 400 });
     }
 
     const product = await prisma.product.create({
       data: {
         name: name.trim(),
         barcode: barcode?.trim() || null,
-        categoryId: Number(categoryId),
+        categoryId: categoryId ? Number(categoryId) : null,
         priceType: priceType || "unit",
         price: Number(price),
         costPrice: Number(costPrice) || 0,

@@ -29,8 +29,8 @@ model Product {
   id                Int                @id @default(autoincrement())
   name              String
   barcode           String?            @unique
-  categoryId        Int
-  category          Category           @relation(fields: [categoryId], references: [id])
+  categoryId        Int?
+  category          Category?           @relation(fields: [categoryId], references: [id])
   priceType         String             @default("unit")
   price             Float
   costPrice         Float              @default(0)

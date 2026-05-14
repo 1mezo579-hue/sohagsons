@@ -9,20 +9,21 @@ import * as XLSX from "xlsx";
 import {
   ArrowRight, Plus, Package, AlertTriangle, Search,
   TrendingUp, TrendingDown, Edit2, Trash2, X, Save,
-  Boxes, Layers, Download, Upload, Trash
+  Boxes, Layers, Download, Upload, Trash, Eye, EyeOff
 } from "lucide-react";
 
 interface Product {
   id: number;
   name: string;
   barcode: string | null;
+  categoryId: number | null;
   price: number;
   costPrice: number;
   stock: number;
   minStock: number;
   priceType: string;
   unit: string;
-  category: { id: number; name: string };
+  category: { id: number; name: string } | null;
   createdAt: string;
 }
 
@@ -39,22 +40,29 @@ export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"products" | "stock" | "categories">("products");
   const [visibleCount, setVisibleCount] = useState(20);
+  const [showTotalValue, setShowTotalValue] = useState(true);
   
   // Modals state
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showStockForm, setShowStockForm] = useState(false);
+  const [isLookingUp, setIsLookingUp] = useState(false);
   
   // Forms state
   const [productForm, setProductForm] = useState({
     name: "", barcode: "", categoryId: "", priceType: "unit" as "unit" | "weight",
     price: "", costPrice: "", stock: "", minStock: "5", unit: "piece",
   });
+  const [lastDefaults, setLastDefaults] = useState({
+    unit: "piece", priceType: "unit" as "unit" | "weight", categoryId: ""
+  });
   const [stockForm, setStockForm] = useState({
     productId: "", type: "in" as "in" | "out", quantity: "", reason: "purchase", notes: "",
   });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const productNameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -63,20 +71,30 @@ export default function InventoryPage() {
       const [productsRes, categoriesRes] = await Promise.all([
         fetch("/api/products"), fetch("/api/categories"),
       ]);
+      
+      if (!productsRes.ok || !categoriesRes.ok) {
+        throw new Error("API failed");
+      }
+
       const pData = await productsRes.json();
       const cData = await categoriesRes.json();
+      
       setProducts(Array.isArray(pData) ? pData : []);
       setCategories(Array.isArray(cData) ? cData : []);
-    } catch { toast.error("حدث خطأ أثناء تحميل البيانات"); }
+    } catch (error) { 
+      console.error("Fetch data error:", error);
+      toast.error("حدث خطأ أثناء تحميل البيانات، يرجى تحديث الصفحة"); 
+    }
   };
 
   const handleSaveProduct = async () => {
-    if (!productForm.name || !productForm.categoryId || !productForm.price) {
-      toast.error("يرجى ملء جميع الحقول المطلوبة"); return;
+    if (!productForm.name || !productForm.price) {
+      toast.error("يرجى كتابة الاسم والسعر على الأقل"); return;
     }
     const data = {
       name: productForm.name, barcode: productForm.barcode || null,
-      categoryId: parseInt(productForm.categoryId), priceType: productForm.priceType,
+      categoryId: productForm.categoryId ? parseInt(productForm.categoryId) : null, 
+      priceType: productForm.priceType,
       price: parseFloat(productForm.price), costPrice: parseFloat(productForm.costPrice) || 0,
       stock: parseFloat(productForm.stock) || 0, minStock: parseFloat(productForm.minStock) || 5,
       unit: productForm.unit,
@@ -87,7 +105,30 @@ export default function InventoryPage() {
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       if (res.ok) {
         toast.success(editingProduct ? "تم تحديث المنتج" : "تمت إضافة المنتج بنجاح");
-        setShowProductForm(false); setEditingProduct(null); resetProductForm(); fetchData();
+        
+        // Update defaults for next entry
+        setLastDefaults({
+          unit: productForm.unit,
+          priceType: productForm.priceType,
+          categoryId: productForm.categoryId
+        });
+
+        if (editingProduct) {
+          setShowProductForm(false);
+          setEditingProduct(null);
+        } else {
+          // Stay in "Add Mode" but clear fields for next product
+          setProductForm({
+            name: "", barcode: "", 
+            categoryId: productForm.categoryId, // Keep category
+            priceType: productForm.priceType,   // Keep price type
+            price: "", costPrice: "", stock: "", 
+            minStock: "5", 
+            unit: productForm.unit              // Keep unit
+          });
+          barcodeInputRef.current?.focus(); // Instant focus for next barcode
+        }
+        fetchData();
       } else { const err = await res.json(); toast.error(err.error || "فشل الحفظ"); }
     } catch { toast.error("خطأ في الاتصال بالسيرفر"); }
   };
@@ -119,6 +160,40 @@ export default function InventoryPage() {
         toast.error(err.error || "فشل المسح", { id: toastId });
       }
     } catch { toast.error("فشل الاتصال بالسيرفر"); }
+  };
+
+  const lookupBarcode = async (barcode: string) => {
+    if (!barcode || barcode.length < 8 || editingProduct) return;
+    
+    setIsLookingUp(true);
+    try {
+      // 1. Search in local database first
+      const localProduct = products.find(p => p.barcode === barcode);
+      if (localProduct) {
+        toast.error("هذا الباركود مسجل مسبقاً لمنتج آخر!");
+        setProductForm(prev => ({ ...prev, name: localProduct.name }));
+        setIsLookingUp(false);
+        return;
+      }
+
+      // 2. Search in Open Food Facts API (Works great for Egypt)
+      const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      const data = await res.json();
+      
+      if (data.status === 1 && data.product) {
+        const productName = data.product.product_name || data.product.product_name_ar || data.product.generic_name;
+        if (productName) {
+          setProductForm(prev => ({ ...prev, name: productName }));
+          toast.success(`تم العثور على: ${productName}`);
+          // Auto focus price input after finding name
+          setTimeout(() => document.getElementById('product-price-input')?.focus(), 100);
+        }
+      }
+    } catch (error) {
+      console.error("Barcode lookup failed:", error);
+    } finally {
+      setIsLookingUp(false);
+    }
   };
 
   const handleExport = () => {
@@ -191,6 +266,17 @@ export default function InventoryPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const openStockModal = (type: "in" | "out", productId: string = "") => {
+    setStockForm({
+      productId,
+      type,
+      quantity: "",
+      reason: type === "in" ? "purchase" : "damage",
+      notes: "",
+    });
+    setShowStockForm(true);
+  };
+
   const handleStockSubmit = async () => {
     if (!stockForm.productId || !stockForm.quantity) { toast.error("أكمل الحقول الناقصة أولاً"); return; }
     try {
@@ -211,28 +297,40 @@ export default function InventoryPage() {
   };
 
   const resetProductForm = () => {
-    setProductForm({ name: "", barcode: "", categoryId: "", priceType: "unit", price: "", costPrice: "", stock: "", minStock: "5", unit: "piece" });
+    setProductForm({ 
+      name: "", barcode: "", 
+      categoryId: lastDefaults.categoryId, 
+      priceType: lastDefaults.priceType, 
+      price: "", costPrice: "", stock: "", minStock: "5", 
+      unit: lastDefaults.unit 
+    });
   };
 
   const startEdit = (product: Product) => {
     setEditingProduct(product);
     setProductForm({
-      name: product.name, barcode: product.barcode || "", categoryId: product.categoryId.toString(),
-      priceType: product.priceType as "unit" | "weight", price: product.price.toString(),
-      costPrice: product.costPrice.toString(), stock: product.stock.toString(),
-      minStock: product.minStock.toString(), unit: product.unit,
+      name: product.name, 
+      barcode: product.barcode || "", 
+      categoryId: product.categoryId?.toString() || "",
+      priceType: product.priceType as "unit" | "weight", 
+      price: product.price.toString(),
+      costPrice: product.costPrice.toString(), 
+      stock: product.stock.toString(),
+      minStock: product.minStock.toString(), 
+      unit: product.unit,
     });
     setShowProductForm(true);
   };
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.barcode?.includes(searchQuery)
-  );
+  const filteredProducts = products.filter((p) => {
+    const name = (p.name || "").toLowerCase();
+    const barcode = p.barcode || "";
+    const search = searchQuery.toLowerCase();
+    return name.includes(search) || barcode.includes(searchQuery);
+  });
 
   const displayedProducts = filteredProducts.slice(0, visibleCount);
   const hasMore = visibleCount < filteredProducts.length;
-
-  useEffect(() => { setVisibleCount(20); }, [searchQuery]);
 
   const lowStockProducts = products.filter((p) => p.stock <= p.minStock);
   const totalStockValue = products.reduce((s, p) => s + p.stock * p.costPrice, 0);
@@ -297,7 +395,16 @@ export default function InventoryPage() {
         {/* KPI Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard title="إجمالي المنتجات المسجلة" value={products.length.toString()} icon={Boxes} gradient="from-blue-500 to-indigo-600" shadow="shadow-blue-500/20" />
-          <StatCard title="إجمالي قيمة المخزون" value={formatPrice(totalStockValue)} icon={Package} gradient="from-emerald-400 to-teal-500" shadow="shadow-emerald-500/20" />
+          <StatCard 
+            title="إجمالي قيمة المخزون" 
+            value={showTotalValue ? formatPrice(totalStockValue) : "••••••"} 
+            icon={Package} 
+            gradient="from-emerald-400 to-teal-500" 
+            shadow="shadow-emerald-500/20" 
+            toggleable
+            isShowing={showTotalValue}
+            onToggle={() => setShowTotalValue(!showTotalValue)}
+          />
           <StatCard title="نواقص تحتاج شراء" value={lowStockCount.toString()} icon={AlertTriangle} gradient="from-rose-400 to-red-500" shadow="shadow-rose-500/20" isAlert={lowStockCount > 0} />
           <StatCard title="أقسام المتجر" value={categories.length.toString()} icon={Layers} gradient="from-purple-500 to-fuchsia-600" shadow="shadow-purple-500/20" />
         </div>
@@ -330,8 +437,16 @@ export default function InventoryPage() {
               <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-4 flex-1 w-full bg-slate-50/80 border-2 border-slate-100 rounded-[1.5rem] px-6 py-4 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-400 transition-all shadow-inner">
                   <Search className="w-6 h-6 text-blue-500" />
-                  <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="ابحث بالاسم أو الباركود لفلترة الأصناف..." className="bg-transparent text-slate-800 placeholder-slate-400 focus:outline-none w-full font-bold text-lg" />
+                  <input 
+                    type="text" 
+                    value={searchQuery} 
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setVisibleCount(20); // Reset count directly here
+                    }}
+                    placeholder="ابحث بالاسم أو الباركود لفلترة الأصناف..." 
+                    className="bg-transparent text-slate-800 placeholder-slate-400 focus:outline-none w-full font-bold text-lg" 
+                  />
                 </div>
                 <button onClick={() => { setEditingProduct(null); resetProductForm(); setShowProductForm(true); }}
                   className="flex items-center justify-center gap-3 px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-[1.5rem] transition-all shadow-[0_8px_25px_rgba(79,70,229,0.4)] text-[18px] font-black hover:-translate-y-1 hover:shadow-2xl w-full lg:w-auto">
@@ -373,34 +488,49 @@ export default function InventoryPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {displayedProducts.map((product) => (
-                        <tr key={product.id} className={`hover:bg-slate-50/80 transition-colors group ${product.stock <= product.minStock ? "bg-rose-50/30" : ""}`}>
-                          <td className="py-5 px-6 font-black text-slate-800 text-[16px]">{product.name}</td>
-                          <td className="py-5 px-6 text-slate-400 font-mono text-[14px] font-bold">
-                            {product.barcode ? <span className="bg-slate-100 px-3 py-1 rounded-lg">{product.barcode}</span> : "-"}
-                          </td>
-                          <td className="py-5 px-6 font-black text-emerald-600 text-[18px]">{formatPrice(product.price)}</td>
-                          <td className="py-5 px-6 text-slate-500 font-bold">{formatPrice(product.costPrice)}</td>
-                          <td className="py-5 px-6">
-                            <div className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-black text-[16px] shadow-sm border ${product.stock <= product.minStock ? "bg-rose-50 border-rose-200 text-rose-700" : "bg-emerald-50 border-emerald-100 text-emerald-700"}`}>
-                              {product.stock} <span className="text-xs font-bold opacity-70">{product.unit}</span>
-                            </div>
-                          </td>
-                          <td className="py-5 px-6">
-                            <span className="bg-purple-50 text-purple-700 border border-purple-100 px-3 py-1.5 rounded-xl font-bold text-[13px] shadow-sm">{product.category?.name || "عام"}</span>
-                          </td>
-                          <td className="py-5 px-6 opacity-50 group-hover:opacity-100 transition-opacity">
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => startEdit(product)} className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-blue-600 hover:border-blue-600 hover:text-white text-slate-500 transition-all shadow-sm hover:shadow-lg hover:-translate-y-1">
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handleDeleteProduct(product.id)} className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-rose-600 hover:border-rose-600 hover:text-white text-slate-500 transition-all shadow-sm hover:shadow-lg hover:-translate-y-1">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                      {displayedProducts.length > 0 ? (
+                        displayedProducts.map((product) => (
+                          <tr key={product.id} className={`hover:bg-slate-50/80 transition-colors group ${product.stock <= product.minStock ? "bg-rose-50/30" : ""}`}>
+                            <td className="py-5 px-6 font-black text-slate-800 text-[16px]">{product.name}</td>
+                            <td className="py-5 px-6 text-slate-400 font-mono text-[14px] font-bold">
+                              {product.barcode ? <span className="bg-slate-100 px-3 py-1 rounded-lg">{product.barcode}</span> : "-"}
+                            </td>
+                            <td className="py-5 px-6 font-black text-emerald-600 text-[18px]">{formatPrice(product.price)}</td>
+                            <td className="py-5 px-6 text-slate-500 font-bold">{formatPrice(product.costPrice)}</td>
+                            <td className="py-5 px-6">
+                              <div className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-black text-[16px] shadow-sm border ${product.stock <= product.minStock ? "bg-rose-50 border-rose-200 text-rose-700" : "bg-emerald-50 border-emerald-100 text-emerald-700"}`}>
+                                {product.stock} <span className="text-xs font-bold opacity-70">{product.unit}</span>
+                              </div>
+                            </td>
+                            <td className="py-5 px-6">
+                              <span className="bg-purple-50 text-purple-700 border border-purple-100 px-3 py-1.5 rounded-xl font-bold text-[13px] shadow-sm">{product.category?.name || "عام"}</span>
+                            </td>
+                            <td className="py-5 px-6 opacity-50 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => openStockModal("in", product.id.toString())} title="إضافة رصيد" className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center hover:bg-emerald-600 hover:border-emerald-600 hover:text-white text-emerald-600 transition-all shadow-sm hover:shadow-lg hover:-translate-y-1">
+                                  <TrendingUp className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => openStockModal("out", product.id.toString())} title="صرف رصيد" className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center hover:bg-rose-600 hover:border-rose-600 hover:text-white text-rose-600 transition-all shadow-sm hover:shadow-lg hover:-translate-y-1">
+                                  <TrendingDown className="w-4 h-4" />
+                                </button>
+                                <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                                <button onClick={() => startEdit(product)} title="تعديل" className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-blue-600 hover:border-blue-600 hover:text-white text-slate-500 transition-all shadow-sm hover:shadow-lg hover:-translate-y-1">
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => handleDeleteProduct(product.id)} title="حذف" className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-rose-600 hover:border-rose-600 hover:text-white text-slate-500 transition-all shadow-sm hover:shadow-lg hover:-translate-y-1">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="py-20 text-center text-slate-400 font-bold text-lg italic">
+                            {products.length === 0 ? "جاري تحميل المنتجات أو لا يوجد بيانات..." : "لا توجد نتائج تطابق بحثك"}
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -422,11 +552,18 @@ export default function InventoryPage() {
           {/* TAB 2: STOCK LOGS */}
           {activeTab === "stock" && (
             <div className="space-y-8 animate-fade-in">
-              <button onClick={() => setShowStockForm(true)}
-                className="flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-[1.5rem] transition-all shadow-[0_8px_30px_rgba(124,58,237,0.4)] text-[18px] font-black hover:-translate-y-1 hover:shadow-2xl">
-                <Plus className="w-7 h-7" />
-                تسجيل إذن إضافة أو صرف للمخزن
-              </button>
+              <div className="flex flex-wrap gap-4">
+                <button onClick={() => openStockModal("in")}
+                  className="flex items-center gap-4 px-10 py-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-[1.5rem] transition-all shadow-[0_8px_30px_rgba(16,185,129,0.4)] text-[18px] font-black hover:-translate-y-1 hover:shadow-2xl flex-1 justify-center min-w-[280px]">
+                  <TrendingUp className="w-7 h-7" />
+                  تسجيل إذن إضافة (توريد)
+                </button>
+                <button onClick={() => openStockModal("out")}
+                  className="flex items-center gap-4 px-10 py-5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white rounded-[1.5rem] transition-all shadow-[0_8px_30px_rgba(225,29,72,0.4)] text-[18px] font-black hover:-translate-y-1 hover:shadow-2xl flex-1 justify-center min-w-[280px]">
+                  <TrendingDown className="w-7 h-7" />
+                  تسجيل إذن صرف (سحب مخزني)
+                </button>
+              </div>
               <StockLogsTable />
             </div>
           )}
@@ -443,9 +580,14 @@ export default function InventoryPage() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-[2.5rem] w-full max-w-3xl overflow-hidden max-h-[90vh] overflow-y-auto shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-100">
             <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 sticky top-0 z-10 backdrop-blur-xl">
-              <h3 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">
-                {editingProduct ? "تعديل بطاقة الصنف" : "تسجيل صنف جديد"}
-              </h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">
+                  {editingProduct ? "تعديل بطاقة الصنف" : "تسجيل صنف جديد"}
+                </h3>
+                {!editingProduct && (
+                  <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-black animate-pulse">وضع الإضافة السريع فعال</span>
+                )}
+              </div>
               <button onClick={() => setShowProductForm(false)} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-200 hover:bg-slate-100 hover:rotate-90 transition-all">
                 <X className="w-6 h-6 text-slate-600" />
               </button>
@@ -455,18 +597,41 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-6">
                 <div className="col-span-2 md:col-span-1">
                   <label className="block text-sm font-black text-slate-700 mb-2">اسم الصنف <span className="text-rose-500">*</span></label>
-                  <input type="text" value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" placeholder="اكتب اسم المنتج بدقة..." />
+                  <input ref={productNameRef} type="text" value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} onKeyDown={(e) => e.key === "Enter" && barcodeInputRef.current?.focus()} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" placeholder="اكتب اسم المنتج بدقة..." />
                 </div>
                 <div className="col-span-2 md:col-span-1">
-                  <label className="block text-sm font-black text-slate-700 mb-2">الباركود</label>
-                  <input type="text" value={productForm.barcode} onChange={(e) => setProductForm({ ...productForm, barcode: e.target.value })} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black font-mono text-xl text-blue-600 tracking-widest focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300" placeholder="000000000" />
+                  <label className="block text-sm font-black text-slate-700 mb-2 flex items-center justify-between">
+                    <span>الباركود</span>
+                    {isLookingUp && <span className="text-[10px] text-blue-600 animate-pulse">جاري البحث عن الاسم...</span>}
+                  </label>
+                  <div className="relative">
+                    <input 
+                      ref={barcodeInputRef} 
+                      type="text" 
+                      value={productForm.barcode} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProductForm({ ...productForm, barcode: val });
+                        if (val.length >= 8) lookupBarcode(val);
+                      }} 
+                      onKeyDown={(e) => e.key === "Enter" && document.getElementById('product-price-input')?.focus()} 
+                      className={`w-full px-6 py-4 bg-slate-50 border-2 rounded-2xl font-black font-mono text-xl tracking-widest focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 ${isLookingUp ? "border-blue-400" : "border-slate-100"}`} 
+                      placeholder="000000000" 
+                      autoFocus 
+                    />
+                    {isLookingUp && (
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                        <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-black text-slate-700 mb-2">القسم التابع له <span className="text-rose-500">*</span></label>
+                <label className="block text-sm font-black text-slate-700 mb-2">القسم التابع له (اختياري)</label>
                 <select value={productForm.categoryId} onChange={(e) => setProductForm({ ...productForm, categoryId: e.target.value })} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-700">
-                  <option value="" disabled>-- اختر القسم الذي ينتمي إليه المنتج --</option>
+                  <option value="">-- بدون قسم (عام) --</option>
                   {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
@@ -496,7 +661,7 @@ export default function InventoryPage() {
                 <div className="bg-emerald-50/50 p-5 rounded-3xl border-2 border-emerald-100">
                   <label className="block text-sm font-black text-emerald-800 mb-3">سعر بيع الجمهور <span className="text-rose-500">*</span></label>
                   <div className="relative">
-                    <input type="number" step="0.01" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} className="w-full px-6 py-5 pl-14 bg-white border-none rounded-2xl font-black text-3xl text-emerald-600 focus:ring-4 focus:ring-emerald-500/30 outline-none transition-all shadow-lg" placeholder="0.00" />
+                    <input id="product-price-input" type="number" step="0.01" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} onKeyDown={(e) => e.key === "Enter" && handleSaveProduct()} className="w-full px-6 py-5 pl-14 bg-white border-none rounded-2xl font-black text-3xl text-emerald-600 focus:ring-4 focus:ring-emerald-500/30 outline-none transition-all shadow-lg" placeholder="0.00" />
                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-600/40 font-black text-xl">ج.م</span>
                   </div>
                 </div>
@@ -607,15 +772,30 @@ export default function InventoryPage() {
   );
 }
 
-function StatCard({ title, value, icon: Icon, gradient, shadow, isAlert }: { title: string; value: string; icon: any; gradient: string; shadow: string; isAlert?: boolean }) {
+function StatCard({ 
+  title, value, icon: Icon, gradient, shadow, isAlert, toggleable, isShowing, onToggle 
+}: { 
+  title: string; value: string; icon: any; gradient: string; shadow: string; isAlert?: boolean;
+  toggleable?: boolean; isShowing?: boolean; onToggle?: () => void;
+}) {
   return (
     <div className={`bg-white/80 backdrop-blur-xl border border-white rounded-[2rem] p-6 shadow-lg hover:shadow-2xl transition-all duration-300 relative overflow-hidden group ${isAlert ? "animate-pulse" : ""}`}>
       <div className={`absolute -inset-10 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500 blur-2xl`}></div>
-      <div className="flex items-center gap-4 mb-6 relative z-10">
-        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-xl ${shadow} group-hover:scale-110 transition-transform duration-300`}>
-          <Icon className="w-8 h-8" />
+      <div className="flex items-center justify-between mb-6 relative z-10">
+        <div className="flex items-center gap-4">
+          <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-xl ${shadow} group-hover:scale-110 transition-transform duration-300`}>
+            <Icon className="w-8 h-8" />
+          </div>
+          <div className="text-[15px] font-black text-slate-500 uppercase tracking-widest">{title}</div>
         </div>
-        <div className="text-[15px] font-black text-slate-500 uppercase tracking-widest">{title}</div>
+        {toggleable && (
+          <button 
+            onClick={onToggle}
+            className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
+          >
+            {isShowing ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        )}
       </div>
       <div className="text-4xl font-black text-slate-800 pr-2 relative z-10">{value}</div>
     </div>
