@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { formatPrice } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -60,11 +62,29 @@ export default function InventoryPage() {
     productId: "", type: "in" as "in" | "out", quantity: "", reason: "purchase", notes: "",
   });
   
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const productNameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchData(); }, []);
+
+  // Auto-open Add Product form if navigated from cashier with ?addBarcode=
+  useEffect(() => {
+    if (!isChecked) return;
+    const params = new URLSearchParams(window.location.search);
+    const barcode = params.get("addBarcode");
+    if (barcode) {
+      setEditingProduct(null);
+      setProductForm({
+        name: "", barcode, categoryId: "", priceType: "unit",
+        price: "", costPrice: "", stock: "", minStock: "5", unit: "piece",
+      });
+      setShowProductForm(true);
+      // Trigger Open Food Facts lookup
+      setTimeout(() => lookupBarcode(barcode), 400);
+    }
+  }, [isChecked]);
 
   const fetchData = async () => {
     try {
@@ -127,6 +147,13 @@ export default function InventoryPage() {
             unit: productForm.unit              // Keep unit
           });
           barcodeInputRef.current?.focus(); // Instant focus for next barcode
+          
+          // If we came from Cashier, return there
+          const params = new URLSearchParams(window.location.search);
+          if (params.has("addBarcode")) {
+            toast("تمت الإضافة، جاري العودة للكاشير...", { icon: "↩️" });
+            setTimeout(() => router.push("/cashier"), 600);
+          }
         }
         fetchData();
       } else { const err = await res.json(); toast.error(err.error || "فشل الحفظ"); }

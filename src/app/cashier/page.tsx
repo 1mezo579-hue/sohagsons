@@ -42,6 +42,10 @@ export default function CashierPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickAddForm, setQuickAddForm] = useState({ name: "", barcode: "", price: "" });
+  const quickAddNameRef = useRef<HTMLInputElement>(null);
+  const quickAddPriceRef = useRef<HTMLInputElement>(null);
 
   const barcodeRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -121,11 +125,6 @@ export default function CashierPage() {
         const weight = weightValue / 1000;
 
         let product = allProducts.find((p) => p.barcode === pluCode);
-        if (!product) {
-          const res = await fetch(`/api/products?query=${pluCode}&limit=1`);
-          const results = await res.json();
-          if (results.length > 0) product = results[0];
-        }
 
         if (product) {
           addToCart(product, weight);
@@ -136,11 +135,6 @@ export default function CashierPage() {
       }
 
       let product = allProducts.find((p) => p.barcode === code);
-      if (!product) {
-        const res = await fetch(`/api/products?query=${code}&limit=1`);
-        const results = await res.json();
-        if (results.length > 0) product = results[0];
-      }
 
       if (product) {
         if (product.priceType === "weight") {
@@ -152,11 +146,53 @@ export default function CashierPage() {
         setBarcodeInput("");
         toast.success(`تم إضافة: ${product.name}`);
       } else {
-        toast.error("الباركود غير موجود!");
+        // Open quick-add modal
         setBarcodeInput("");
+        setQuickAddForm({ name: "", barcode: code, price: "" });
+        setShowQuickAdd(true);
+        setTimeout(() => quickAddNameRef.current?.focus(), 80);
       }
     }
   }, [barcodeInput, allProducts]);
+
+  const handleQuickSave = async () => {
+    if (!quickAddForm.name.trim() || !quickAddForm.price) {
+      toast.error("اكتب الاسم والسعر");
+      return;
+    }
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: quickAddForm.name.trim(),
+          barcode: quickAddForm.barcode || null,
+          price: parseFloat(quickAddForm.price),
+          costPrice: 0, stock: 20, minStock: 5,
+          priceType: "unit", unit: "piece",
+        }),
+      });
+      if (res.ok) {
+        const newProduct = await res.json();
+        setAllProducts(prev => [newProduct, ...prev]);
+        const item: CartItem = {
+          productId: newProduct.id, name: newProduct.name,
+          price: newProduct.price, quantity: 1,
+          unit: newProduct.unit, priceType: newProduct.priceType,
+          total: newProduct.price,
+        };
+        cart.addItem(item);
+        toast.success(`➕ تمت إضافة: ${newProduct.name}`);
+        setShowQuickAdd(false);
+        barcodeRef.current?.focus();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "فشل الحفظ");
+      }
+    } catch {
+      toast.error("خطأ في الاتصال بالسيرفر");
+    }
+  };
 
   const addToCart = (product: Product, quantity: number) => {
     if (product.stock < quantity) {
@@ -352,7 +388,10 @@ export default function CashierPage() {
               }
             }
           } else if (!isInput) {
-            toast.error("الباركود غير موجود!");
+            // Open quick-add modal
+            setQuickAddForm({ name: "", barcode: code, price: "" });
+            setShowQuickAdd(true);
+            setTimeout(() => quickAddNameRef.current?.focus(), 80);
           }
         }
         barcodeString = "";
@@ -369,7 +408,7 @@ export default function CashierPage() {
       window.removeEventListener("keydown", handleKeyDown);
       clearTimeout(timeout);
     };
-  }, [products, cart]);
+  }, [allProducts, cart]);
 
   if (!isChecked) {
     return (
@@ -913,6 +952,82 @@ export default function CashierPage() {
               >
                 فاتورة جديدة
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Quick Add Modal ─── */}
+      {showQuickAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm no-print">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-fade-in">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-white/70 text-xs font-bold">باركود غير مسجل</p>
+                <h3 className="text-white font-black text-lg">إضافة صنف جديد</h3>
+              </div>
+              <button onClick={() => { setShowQuickAdd(false); barcodeRef.current?.focus(); }}
+                className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              {/* Barcode display */}
+              {quickAddForm.barcode && (
+                <div className="bg-slate-50 rounded-2xl px-4 py-2.5 flex items-center gap-3">
+                  <ScanLine className="w-4 h-4 text-slate-400" />
+                  <span className="font-mono font-black text-slate-600 tracking-widest text-sm">{quickAddForm.barcode}</span>
+                </div>
+              )}
+
+              {/* Name */}
+              <div>
+                <label className="block text-xs font-black text-slate-500 mb-1.5">اسم الصنف *</label>
+                <input
+                  ref={quickAddNameRef}
+                  type="text"
+                  value={quickAddForm.name}
+                  onChange={e => setQuickAddForm(f => ({ ...f, name: e.target.value }))}
+                  onKeyDown={e => e.key === "Enter" && quickAddPriceRef.current?.focus()}
+                  className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl font-bold text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-base"
+                  placeholder="اكتب اسم المنتج..."
+                />
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="block text-xs font-black text-slate-500 mb-1.5">سعر البيع *</label>
+                <div className="relative">
+                  <input
+                    ref={quickAddPriceRef}
+                    type="number"
+                    step="0.01"
+                    value={quickAddForm.price}
+                    onChange={e => setQuickAddForm(f => ({ ...f, price: e.target.value }))}
+                    onKeyDown={e => e.key === "Enter" && handleQuickSave()}
+                    className="w-full px-4 py-4 pl-16 bg-slate-50 border-2 border-slate-200 rounded-2xl font-black text-2xl text-emerald-600 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                    placeholder="0.00"
+                  />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black">ج.م</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={handleQuickSave}
+                  className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-black text-base transition-all shadow-lg shadow-blue-500/30 hover:-translate-y-0.5">
+                  ➕ حفظ وأضف للسلة
+                </button>
+                <button
+                  onClick={() => { setShowQuickAdd(false); barcodeRef.current?.focus(); }}
+                  className="px-5 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black transition-all">
+                  إلغاء
+                </button>
+              </div>
             </div>
           </div>
         </div>
