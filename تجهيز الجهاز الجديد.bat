@@ -1,40 +1,63 @@
 @echo off
 chcp 65001 >nul
-title تجهيز نظام أبناء سوهاج - الجهاز الجديد
-color 0B
-
-echo ============================================
-echo    أبناء سوهاج - إعداد النظام للجهاز الجديد
-echo ============================================
+title تجهيز الجهاز الجديد - ماركت أبناء سوهاج
+echo.
+echo  =============================================
+echo    خطوات تجهيز جهاز المحل الجديد
+echo  =============================================
 echo.
 
-:: 1. Check for Node.js
-node -v >nul 2>&1
-if errorlevel 1 (
-    echo [❌] خطأ: Node.js غير مثبت على هذا الجهاز!
-    echo يرجى تحميل وتثبيت Node.js من الموقع: https://nodejs.org
-    echo ثم أعد تشغيل هذا الملف مرة أخرى.
-    echo.
+cd /d "%~dp0"
+
+echo [1/5] التحقق من Node.js...
+node --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ❌ Node.js غير مثبت! يرجى تثبيته من:
+    echo    https://nodejs.org (اختر LTS)
     pause
-    exit /b
+    exit /b 1
 )
-
-echo [✅] تم العثور على Node.js
-echo.
-
-:: 2. Install Dependencies
-echo [1/2] جاري تثبيت المكتبات (قد يستغرق دقائق)...
-call npm install --legacy-peer-deps
-
-:: 3. Generate Database Client
-echo [2/2] جاري تجهيز الربط السحابي...
-call npx prisma generate
+echo ✅ Node.js موجود
 
 echo.
-echo ============================================
-echo    ✅ تم تجهيز النظام بنجاح!
-echo    الجهاز الآن مربوط بقاعدة البيانات السحابية.
-echo    يمكنك الآن تشغيل "ابدأ البرنامج.vbs"
-echo ============================================
+echo [2/5] تثبيت المكتبات...
+npm install
+if %errorlevel% neq 0 (
+    echo ❌ فشل تثبيت المكتبات - تأكد من الاتصال بالإنترنت
+    pause
+    exit /b 1
+)
+echo ✅ تم تثبيت المكتبات
+
 echo.
+echo [3/5] إعداد قاعدة البيانات...
+npx prisma generate
+if %errorlevel% neq 0 (
+    echo ❌ فشل إعداد قاعدة البيانات
+    pause
+    exit /b 1
+)
+echo ✅ تم إعداد قاعدة البيانات
+
+echo.
+echo [4/5] بناء النسخة المحمية (قد يأخذ 2-3 دقائق)...
+npx next build
+if %errorlevel% neq 0 (
+    echo ❌ فشل البناء - راجع الأخطاء
+    pause
+    exit /b 1
+)
+echo ✅ تم البناء بنجاح
+
+echo.
+echo [5/5] تشغيل النظام...
+echo.
+echo  ╔═══════════════════════════════════╗
+echo  ║  ✅ النظام جاهز للاستخدام        ║
+echo  ║  افتح المتصفح على:               ║
+echo  ║  http://localhost:3000            ║
+echo  ╚═══════════════════════════════════╝
+echo.
+npx next start -p 3000
+
 pause
