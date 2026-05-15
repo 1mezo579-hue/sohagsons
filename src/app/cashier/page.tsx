@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import {
   Search, Trash2, Minus, Plus, Printer, ShoppingCart,
   ArrowRight, CreditCard, Banknote, Percent, ScanLine,
-  X, Package, Weight, Clock, Phone
+  X, Package, Weight, Clock, Phone, Edit2
 } from "lucide-react";
 
 interface Product {
@@ -44,8 +44,12 @@ export default function CashierPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState({ name: "", barcode: "", price: "" });
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [newPrice, setNewPrice] = useState("");
+  const [isUpdatingPrice, setIsUpdatingPrice] = useState(false);
   const quickAddNameRef = useRef<HTMLInputElement>(null);
   const quickAddPriceRef = useRef<HTMLInputElement>(null);
+  const editPriceRef = useRef<HTMLInputElement>(null);
 
   const barcodeRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -210,6 +214,35 @@ export default function CashierPage() {
       total: product.price * quantity,
     };
     cart.addItem(item);
+  };
+  
+  const handleQuickPriceUpdate = async () => {
+    if (!editingProduct || !newPrice) return;
+    setIsUpdatingPrice(true);
+    try {
+      const res = await fetch(`/api/products/${editingProduct.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...editingProduct,
+          price: parseFloat(newPrice),
+          categoryId: editingProduct.category?.id || null, // Ensure ID is passed not object
+        }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setAllProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+        cart.updatePrice(updated.id, updated.price); // Update cart price too
+        toast.success(`تم تحديث سعر ${updated.name} إلى ${updated.price}`);
+        setEditingProduct(null);
+      } else {
+        toast.error("فشل تحديث السعر");
+      }
+    } catch {
+      toast.error("خطأ في الاتصال بالسيرفر");
+    } finally {
+      setIsUpdatingPrice(false);
+    }
   };
 
   const handleWeightSubmit = () => {
@@ -515,40 +548,53 @@ export default function CashierPage() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
               {displayedProducts.map((product) => (
-                <button
-                  key={product.id}
-                  onClick={() => {
-                    if (product.priceType === "weight") {
-                      setWeightInput({ productId: product.id, weight: "" });
-                    } else {
-                      addToCart(product, 1);
-                    }
-                  }}
-                  className={`p-4 rounded-2xl border-2 text-right transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 ${
-                    product.stock <= product.minStock
-                      ? "border-rose-100 bg-rose-50/30 hover:border-rose-300"
-                      : product.name.includes("سايب") || product.name.includes("كيلو") 
-                      ? "border-blue-100 bg-blue-50/30 hover:border-blue-500" 
-                      : "border-slate-100 bg-white hover:border-blue-500/40"
-                  }`}
-                >
-                  <div className="font-bold text-[15px] text-slate-900 truncate mb-1.5">{product.name}</div>
-                  <div className="text-blue-600 font-black text-lg">
-                    {formatPrice(product.price)}
-                    <span className="text-xs text-slate-400 font-medium mr-1">/{product.unit}</span>
-                  </div>
-                  <div className="text-xs text-slate-500 mt-2 font-medium">
-                    مخزون: <span className={product.stock <= product.minStock ? "text-rose-500 font-bold" : "text-emerald-600 font-bold"}>
-                      {product.stock} {product.unit}
-                    </span>
-                  </div>
-                  {product.priceType === "weight" && (
-                    <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded-lg mt-2">
-                      <Weight className="w-3.5 h-3.5" />
-                      يوزن
-                    </span>
-                  )}
-                </button>
+                <div key={product.id} className="relative group">
+                  <button
+                    onClick={() => {
+                      if (product.priceType === "weight") {
+                        setWeightInput({ productId: product.id, weight: "" });
+                      } else {
+                        addToCart(product, 1);
+                      }
+                    }}
+                    className={`w-full p-4 rounded-2xl border-2 text-right transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 ${
+                      product.stock <= product.minStock
+                        ? "border-rose-100 bg-rose-50/30 hover:border-rose-300"
+                        : product.name.includes("سايب") || product.name.includes("كيلو") 
+                        ? "border-blue-100 bg-blue-50/30 hover:border-blue-500" 
+                        : "border-slate-100 bg-white hover:border-blue-500/40"
+                    }`}
+                  >
+                    <div className="font-bold text-[15px] text-slate-900 truncate mb-1.5">{product.name}</div>
+                    <div className="text-blue-600 font-black text-lg">
+                      {formatPrice(product.price)}
+                      <span className="text-xs text-slate-400 font-medium mr-1">/{product.unit}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-2 font-medium">
+                      مخزون: <span className={product.stock <= product.minStock ? "text-rose-500 font-bold" : "text-emerald-600 font-bold"}>
+                        {product.stock} {product.unit}
+                      </span>
+                    </div>
+                    {product.priceType === "weight" && (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded-lg mt-2">
+                        <Weight className="w-3.5 h-3.5" />
+                        يوزن
+                      </span>
+                    )}
+                  </button>
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setEditingProduct(product); 
+                      setNewPrice(product.price.toString());
+                      setTimeout(() => editPriceRef.current?.focus(), 100);
+                    }}
+                    className="absolute top-3 left-3 p-2 bg-white/90 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:text-white text-slate-400 shadow-sm border border-slate-100 z-10"
+                    title="تعديل السعر"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
 
@@ -1075,6 +1121,60 @@ export default function CashierPage() {
                 <button
                   onClick={() => { setShowQuickAdd(false); barcodeRef.current?.focus(); }}
                   className="px-5 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black transition-all">
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Quick Price Edit Modal ─── */}
+      {editingProduct && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm no-print">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-slide-up">
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-center relative">
+               <button 
+                onClick={() => setEditingProduct(null)}
+                className="absolute top-5 left-5 text-slate-500 hover:text-white"
+               >
+                 <X className="w-6 h-6" />
+               </button>
+               <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+                 <Edit2 className="w-8 h-8 text-white" />
+               </div>
+               <h3 className="text-white font-black text-xl mb-1">{editingProduct.name}</h3>
+               <p className="text-slate-400 text-sm font-bold">تعديل سعر البيع الحالي</p>
+            </div>
+            
+            <div className="p-8 space-y-6">
+              <div className="relative">
+                <input
+                  ref={editPriceRef}
+                  type="number"
+                  step="0.01"
+                  value={newPrice}
+                  onChange={e => setNewPrice(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleQuickPriceUpdate()}
+                  className="w-full px-6 py-6 pl-16 bg-slate-50 border-2 border-slate-100 rounded-3xl font-black text-4xl text-center text-blue-600 focus:border-blue-500 focus:bg-white outline-none transition-all"
+                  placeholder="0.00"
+                />
+                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xl">ج.م</span>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleQuickPriceUpdate}
+                  disabled={isUpdatingPrice}
+                  className="flex-[2] py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-2xl font-black text-lg transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2"
+                >
+                  {isUpdatingPrice ? <span className="animate-spin text-2xl">⟳</span> : null}
+                  {isUpdatingPrice ? "جاري الحفظ..." : "حفظ السعر الجديد"}
+                </button>
+                <button
+                  onClick={() => setEditingProduct(null)}
+                  className="flex-1 py-5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black transition-all"
+                >
                   إلغاء
                 </button>
               </div>
