@@ -35,7 +35,7 @@ export default function CashierPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastInvoice, setLastInvoice] = useState<any>(null);
-  const [weightInput, setWeightInput] = useState<{ productId: number; weight: string } | null>(null);
+  const [weightInput, setWeightInput] = useState<{ productId: number; weight: string; moneyAmount: string } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [displayLimit, setDisplayLimit] = useState(80);
@@ -142,7 +142,7 @@ export default function CashierPage() {
 
       if (product) {
         if (product.priceType === "weight") {
-          setWeightInput({ productId: product.id, weight: "" });
+          setWeightInput({ productId: product.id, weight: "", moneyAmount: "" });
           setBarcodeInput("");
           return;
         }
@@ -260,6 +260,28 @@ export default function CashierPage() {
     }
     setWeightInput(null);
     barcodeRef.current?.focus();
+  };
+
+  const handleMoneyChange = (value: string, pricePerKg: number) => {
+    if (!weightInput) return;
+    const money = parseFloat(value);
+    if (isNaN(money) || money <= 0) {
+      setWeightInput({ ...weightInput, moneyAmount: value, weight: "" });
+      return;
+    }
+    const calculatedWeight = (money / pricePerKg).toFixed(3);
+    setWeightInput({ ...weightInput, moneyAmount: value, weight: calculatedWeight });
+  };
+
+  const handleWeightChange = (value: string, pricePerKg: number) => {
+    if (!weightInput) return;
+    const weight = parseFloat(value);
+    if (isNaN(weight) || weight <= 0) {
+      setWeightInput({ ...weightInput, weight: value, moneyAmount: "" });
+      return;
+    }
+    const calculatedMoney = (weight * pricePerKg).toFixed(2);
+    setWeightInput({ ...weightInput, weight: value, moneyAmount: calculatedMoney });
   };
 
   const categories = ["all", ...Array.from(new Set(allProducts.map((p) => p.category?.name || "غير مصنف")))];
@@ -408,7 +430,7 @@ export default function CashierPage() {
           let product = allProducts.find((p) => p.barcode === code);
           if (product) {
             if (product.priceType === "weight") {
-              setWeightInput({ productId: product.id, weight: "" });
+              setWeightInput({ productId: product.id, weight: "", moneyAmount: "" });
             } else {
               if (product.stock >= 1) {
                 cart.addItem({
@@ -552,7 +574,7 @@ export default function CashierPage() {
                   <button
                     onClick={() => {
                       if (product.priceType === "weight") {
-                        setWeightInput({ productId: product.id, weight: "" });
+                        setWeightInput({ productId: product.id, weight: "", moneyAmount: "" });
                       } else {
                         addToCart(product, 1);
                       }
@@ -766,7 +788,7 @@ export default function CashierPage() {
                   {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((w) => (
                     <button
                       key={w}
-                      onClick={() => setWeightInput({ ...weightInput, weight: String(w) })}
+                      onClick={() => handleWeightChange(String(w), product?.price || 0)}
                       className={`py-3.5 rounded-2xl font-black text-base transition-all active:scale-95 ${
                         kg === w
                           ? "bg-blue-600 text-white shadow-lg shadow-blue-500/40 scale-105"
@@ -789,7 +811,7 @@ export default function CashierPage() {
                     max="2"
                     step="0.25"
                     value={weightInput.weight || "0.25"}
-                    onChange={(e) => setWeightInput({ ...weightInput, weight: e.target.value })}
+                    onChange={(e) => handleWeightChange(e.target.value, product?.price || 0)}
                     className="w-full h-3 bg-slate-200 rounded-full appearance-none cursor-pointer accent-blue-600"
                     style={{ direction: "ltr" }}
                   />
@@ -803,20 +825,40 @@ export default function CashierPage() {
                 </div>
               </div>
 
-              {/* Manual input */}
-              <div className="px-6 mb-5">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">أو أدخل الوزن يدوياً</p>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.001"
-                    value={weightInput.weight}
-                    onChange={(e) => setWeightInput({ ...weightInput, weight: e.target.value })}
-                    onKeyDown={(e) => e.key === "Enter" && handleWeightSubmit()}
-                    placeholder="مثال: 0.750"
-                    className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-xl font-black text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
-                  />
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">كجم</div>
+              {/* Inputs Grid */}
+              <div className="px-6 mb-5 grid grid-cols-2 gap-4">
+                {/* Manual weight input */}
+                <div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">الوزن (كجم)</p>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.001"
+                      value={weightInput.weight}
+                      onChange={(e) => handleWeightChange(e.target.value, product?.price || 0)}
+                      onKeyDown={(e) => e.key === "Enter" && handleWeightSubmit()}
+                      placeholder="0.000"
+                      className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-xl font-black text-slate-900 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all"
+                    />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">كجم</div>
+                  </div>
+                </div>
+
+                {/* Manual money input */}
+                <div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">المبلغ (جنيه)</p>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={weightInput.moneyAmount}
+                      onChange={(e) => handleMoneyChange(e.target.value, product?.price || 0)}
+                      onKeyDown={(e) => e.key === "Enter" && handleWeightSubmit()}
+                      placeholder="0.00"
+                      className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-3.5 text-xl font-black text-blue-600 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all"
+                    />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">ج.م</div>
+                  </div>
                 </div>
               </div>
 
