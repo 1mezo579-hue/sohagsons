@@ -275,8 +275,10 @@ async function main() {
             price: pData.price,
             priceType: pData.priceType || exists.priceType,
             unit: pData.unit || exists.unit,
+            categoryId: category.id,
           }
         });
+        console.log(`   [Update] ${pData.name}`);
       } else {
         let barcode = pData.barcode;
         if (!barcode) {
@@ -297,6 +299,7 @@ async function main() {
             stock: Math.floor(Math.random() * 50) + 10,
           },
         });
+        console.log(`   [Create] ${pData.name}`);
       }
     }
   }
