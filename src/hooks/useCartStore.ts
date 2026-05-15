@@ -19,6 +19,8 @@ interface CartStore {
   getTotal: () => number;
   getFinalTotal: () => number;
   getDeliveryFee: () => number;
+  setDeliveryFee: (fee: number) => void;
+  deliveryFee: number;
 }
 
 export const useCartStore = create<CartStore>((set, get) => ({
@@ -26,6 +28,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   discount: 0,
   paymentType: "cash",
   orderType: "shop",
+  deliveryFee: 5,
 
   addItem: (item) => {
     set((state) => {
@@ -76,14 +79,15 @@ export const useCartStore = create<CartStore>((set, get) => ({
   setDiscount: (discount) => set({ discount }),
   setPaymentType: (type) => set({ paymentType: type }),
   setOrderType: (type) => set({ orderType: type }),
-  clearCart: () => set({ items: [], discount: 0, orderType: "shop" }),
+  setDeliveryFee: (fee) => set({ deliveryFee: fee }),
+  clearCart: () => set({ items: [], discount: 0, orderType: "shop", deliveryFee: 5 }),
 
   getTotal: () => {
     return get().items.reduce((sum, item) => sum + item.total, 0);
   },
 
   getDeliveryFee: () => {
-    return get().orderType === "delivery" ? 5 : 0;
+    return get().orderType === "delivery" ? get().deliveryFee : 0;
   },
 
   getFinalTotal: () => {
