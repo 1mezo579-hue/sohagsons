@@ -56,8 +56,22 @@ async function main() {
         { name: "جبنة دومتي فيتا 500جم", costPrice: 35, price: 42, barcode: "6221000001236" },
         { name: "جبنة عبور لاند تتراباك 250جم", costPrice: 18, price: 22, barcode: "6221000001237" },
         { name: "زبادي جهينة كبير", costPrice: 7, price: 9, barcode: "6221000001238" },
-        { name: "جبنة رومي قديم (كجم)", costPrice: 220, price: 260, barcode: "PLU001", priceType: "weight", unit: "kg" },
-        { name: "لانشون حلواني سادة (كجم)", costPrice: 180, price: 220, barcode: "PLU002", priceType: "weight", unit: "kg" },
+        { name: "جبن رومى قديم (وزن)", price: 300, priceType: "weight", unit: "kg" },
+        { name: "جبن رومى وسط (وزن)", price: 260, priceType: "weight", unit: "kg" },
+        { name: "جبن ابيض طري (وزن)", price: 160, priceType: "weight", unit: "kg" },
+        { name: "جبن ابيض ناشف (وزن)", price: 160, priceType: "weight", unit: "kg" },
+        { name: "جبن كيرى سادة (وزن)", price: 180, priceType: "weight", unit: "kg" },
+        { name: "جبن كيرى شيدر (وزن)", price: 180, priceType: "weight", unit: "kg" },
+        { name: "جبن كيرى بسطرمة (وزن)", price: 200, priceType: "weight", unit: "kg" },
+        { name: "جبن كيرى بالزيتون (وزن)", price: 180, priceType: "weight", unit: "kg" },
+        { name: "جبن ابيض ملح خفيف (وزن)", price: 160, priceType: "weight", unit: "kg" },
+        { name: "جبن قريش الاصدقاء (وزن)", price: 140, priceType: "weight", unit: "kg" },
+        { name: "جبن تركى مبشور (وزن)", price: 260, priceType: "weight", unit: "kg" },
+        { name: "جبن ناشف بالفلفل (وزن)", price: 160, priceType: "weight", unit: "kg" },
+        { name: "جبن شيدر (وزن)", price: 640, priceType: "weight", unit: "kg" },
+        { name: "جبنة حمرا (وزن)", price: 640, priceType: "weight", unit: "kg" },
+        { name: "جبنة بيضاء بالقشطة (وزن)", price: 180, priceType: "weight", unit: "kg" },
+        { name: "جبنة مش تركى (وزن)", price: 100, priceType: "weight", unit: "kg" },
       ]
     },
     {
@@ -106,6 +120,7 @@ async function main() {
         { name: "بونبون سيلا الميزان (وزن)", costPrice: 80, price: 100, priceType: "weight", unit: "kg" },
         { name: "ملبس طوفي (وزن)", costPrice: 60, price: 80, priceType: "weight", unit: "kg" },
         { name: "جيلي كولا هاريبو", costPrice: 25, price: 35 },
+        { name: "نوتيلا سايب (وزن)", price: 120, priceType: "weight", unit: "kg" },
       ]
     },
     {
@@ -170,6 +185,9 @@ async function main() {
         { name: "عسل أسود البوادي 700 جم", costPrice: 30, price: 40 },
         { name: "عسل نحل امتنان 500 جم", costPrice: 85, price: 110 },
         { name: "مربى فيتراك فراولة 380 جم", costPrice: 28, price: 35 },
+        { name: "حلاوة طحينية (وزن)", price: 160, priceType: "weight", unit: "kg" },
+        { name: "عسل اسود (وزن)", price: 44, priceType: "weight", unit: "kg" },
+        { name: "طحينة بيضاء (وزن)", price: 180, priceType: "weight", unit: "kg" },
       ]
     },
     {
@@ -183,8 +201,13 @@ async function main() {
         { name: "بسلة بالجزر مونتانا 400 جم", costPrice: 18, price: 22 },
         { name: "ملوخية بسمة 400 جم", costPrice: 15, price: 18 },
         { name: "بسطرمة (وزن)", costPrice: 350, price: 420, priceType: "weight", unit: "kg" },
-        { name: "لانشون حلواني سادة (وزن)", costPrice: 140, price: 170, priceType: "weight", unit: "kg" },
-        { name: "لانشون المراعي زيتون (وزن)", costPrice: 120, price: 150, priceType: "weight", unit: "kg" },
+        { name: "فاهيتا لانشون (وزن)", price: 180, priceType: "weight", unit: "kg" },
+        { name: "بيفي اطياب (وزن)", price: 220, priceType: "weight", unit: "kg" },
+        { name: "بيفى بالبسطرمة (وزن)", price: 180, priceType: "weight", unit: "kg" },
+        { name: "لانشون عادى (وزن)", price: 120, priceType: "weight", unit: "kg" },
+        { name: "لانشون حلوانى (وزن)", price: 340, priceType: "weight", unit: "kg" },
+        { name: "لانشون فراخ (وزن)", price: 220, priceType: "weight", unit: "kg" },
+        { name: "رنجة بالوزن (وزن)", price: 200, priceType: "weight", unit: "kg" },
       ]
     },
     {
@@ -232,7 +255,8 @@ async function main() {
     }
   ];
 
-  let barcodeCounter = 622100000;
+  let barcodeCounter = 822100000;
+  console.log("Starting Seeding...");
 
   for (const cData of categoriesData) {
     const category = await prisma.category.upsert({
@@ -240,16 +264,37 @@ async function main() {
       update: {},
       create: { name: cData.name },
     });
+    console.log(`Seeding Category: ${cData.name}`);
 
     for (const pData of cData.products) {
       const exists = await prisma.product.findFirst({ where: { name: pData.name } });
-      if (!exists) {
+      if (exists) {
+        await prisma.product.update({
+          where: { id: exists.id },
+          data: {
+            price: pData.price,
+            priceType: pData.priceType || exists.priceType,
+            unit: pData.unit || exists.unit,
+          }
+        });
+      } else {
+        let barcode = pData.barcode;
+        if (!barcode) {
+          while (true) {
+            const potentialBarcode = (barcodeCounter++).toString();
+            const bExists = await prisma.product.findUnique({ where: { barcode: potentialBarcode } });
+            if (!bExists) {
+              barcode = potentialBarcode;
+              break;
+            }
+          }
+        }
         await prisma.product.create({
           data: {
             ...pData,
-            barcode: (barcodeCounter++).toString(),
+            barcode: barcode,
             categoryId: category.id,
-            stock: Math.floor(Math.random() * 50) + 10, // رصيد افتراضي عشوائي
+            stock: Math.floor(Math.random() * 50) + 10,
           },
         });
       }
