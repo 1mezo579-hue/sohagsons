@@ -416,11 +416,6 @@ export default function InventoryPage() {
             <span className="text-sm font-black text-slate-900">{user?.name}</span>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">المشرف</span>
           </div>
-          
-          <button onClick={handleDeleteAll} className="flex items-center gap-2 px-5 py-2.5 bg-rose-50 border-2 border-rose-200 text-rose-700 hover:bg-rose-600 hover:text-white rounded-2xl transition-all shadow-sm font-bold hover:-translate-y-1 group">
-            <Trash className="w-5 h-5 group-hover:animate-bounce" />
-            تصفير المخزن
-          </button>
         </div>
       </header>
 
