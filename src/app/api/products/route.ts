@@ -34,6 +34,7 @@ export async function GET() {
 // ─── POST create product ─────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
+    const body = await req.json();
     const { name, barcode, categoryId, priceType, price, costPrice, stock, minStock, unit, expiryDate } = body;
 
     if (!name?.trim() || price === undefined) {
