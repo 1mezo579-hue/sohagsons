@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import { ShoppingCart, Package, BarChart3, Users, Store, ChevronLeft, LogOut, Wallet, Truck, Contact } from "lucide-react";
+import { ShoppingCart, Package, BarChart3, Users, Store, ChevronLeft, LogOut, Wallet, Truck, Contact, RotateCcw } from "lucide-react";
 
 const ALL_MODULES = [
   {
@@ -50,6 +50,15 @@ const ALL_MODULES = [
     href: "/delivery",
     bg: "from-cyan-500 to-blue-600",
     shadow: "shadow-cyan-500/30",
+    roles: ["admin", "manager", "cashier"],
+  },
+  {
+    title: "المرتجع",
+    desc: "تسجيل المرتجعات وإعادتها للمخزون",
+    icon: RotateCcw,
+    href: "/returns",
+    bg: "from-rose-600 to-rose-700",
+    shadow: "shadow-rose-500/30",
     roles: ["admin", "manager", "cashier"],
   },
   {

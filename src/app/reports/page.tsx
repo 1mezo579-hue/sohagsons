@@ -7,7 +7,7 @@ import { formatPrice, formatDate } from "@/lib/utils";
 import {
   ArrowRight, TrendingUp, TrendingDown, Calendar,
   DollarSign, Package, ShoppingCart, Users, Clock,
-  BarChart3, PieChart, Activity, Layers, Eye, X, Printer
+  BarChart3, PieChart, Activity, Layers, Eye, X, Printer, RotateCcw
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -79,24 +79,33 @@ export default function ReportsPage() {
   }, [invoices, dateRange, customFrom, customTo]);
 
   const stats = useMemo(() => {
+    const salesInvoices = filteredInvoices.filter(i => i.orderType !== "return");
+    const returnInvoices = filteredInvoices.filter(i => i.orderType === "return");
+
     const totalSales = filteredInvoices.reduce((s, i) => s + i.finalTotal, 0);
-    const totalDiscount = filteredInvoices.reduce((s, i) => s + i.discount, 0);
-    const totalInvoices = filteredInvoices.length;
-    const avgInvoice = totalInvoices > 0 ? totalSales / totalInvoices : 0;
-    const totalItems = filteredInvoices.reduce((s, i) => s + i.items.length, 0);
+    const totalDiscount = salesInvoices.reduce((s, i) => s + i.discount, 0);
+    const totalInvoices = salesInvoices.length;
+    const avgInvoice = totalInvoices > 0 ? salesInvoices.reduce((s, i) => s + i.finalTotal, 0) / totalInvoices : 0;
+    const totalItems = salesInvoices.reduce((s, i) => s + i.items.length, 0);
 
     const totalCost = filteredInvoices.reduce((sum, inv) => {
+      const isReturn = inv.orderType === "return";
+      const multiplier = isReturn ? -1 : 1;
       return sum + inv.items.reduce((itemSum, item) => {
-        return itemSum + item.quantity * item.product.costPrice;
+        return itemSum + (item.quantity * (item.product.costPrice || 0) * multiplier);
       }, 0);
     }, 0);
+
     const profit = totalSales - totalCost;
     const profitMargin = totalSales > 0 ? (profit / totalSales) * 100 : 0;
+
+    const returnsCount = returnInvoices.length;
+    const returnsTotal = Math.abs(returnInvoices.reduce((s, i) => s + i.finalTotal, 0));
 
     const cashSales = filteredInvoices.filter(i => i.paymentType === "cash").reduce((s, i) => s + i.finalTotal, 0);
     const cardSales = filteredInvoices.filter(i => i.paymentType === "card").reduce((s, i) => s + i.finalTotal, 0);
 
-    return { totalSales, totalDiscount, totalInvoices, avgInvoice, totalItems, profit, profitMargin, cashSales, cardSales, totalCost };
+    return { totalSales, totalDiscount, totalInvoices, avgInvoice, totalItems, profit, profitMargin, cashSales, cardSales, totalCost, returnsCount, returnsTotal };
   }, [filteredInvoices]);
 
   const hourlyData = useMemo(() => {
@@ -231,11 +240,12 @@ export default function ReportsPage() {
 
       <div className={`p-4 md:p-6 max-w-7xl mx-auto space-y-8 animate-fade-in ${selectedInvoice ? 'no-print' : ''}`}>
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          <KpiCard title="إجمالي المبيعات" value={formatPrice(stats.totalSales)} icon={DollarSign} color="text-blue-600" bg="bg-blue-50" />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+          <KpiCard title="إجمالي المبيعات" value={formatPrice(stats.totalSales)} icon={DollarSign} color="text-blue-600" bg="bg-blue-50" sub={stats.returnsCount > 0 ? "صافي المبيعات" : undefined} />
           <KpiCard title="صافي الأرباح" value={formatPrice(stats.profit)} icon={TrendingUp} color="text-emerald-600" bg="bg-emerald-50" sub={`${stats.profitMargin.toFixed(1)}% هامش الربح`} />
           <KpiCard title="عدد الفواتير" value={stats.totalInvoices.toString()} icon={ShoppingCart} color="text-amber-600" bg="bg-amber-50" sub={`متوسط الفاتورة: ${formatPrice(stats.avgInvoice)}`} />
-          <KpiCard title="إجمالي الخصومات" value={formatPrice(stats.totalDiscount)} icon={TrendingDown} color="text-rose-600" bg="bg-rose-50" />
+          <KpiCard title="إجمالي المرتجعات" value={formatPrice(stats.returnsTotal)} icon={RotateCcw} color="text-rose-600" bg="bg-rose-50" sub={`عدد المرتجعات: ${stats.returnsCount}`} />
+          <KpiCard title="إجمالي الخصومات" value={formatPrice(stats.totalDiscount)} icon={TrendingDown} color="text-slate-600" bg="bg-slate-50" />
         </div>
 
         {/* View Tabs */}
@@ -441,20 +451,37 @@ export default function ReportsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredInvoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-4 px-6 font-mono text-[13px] font-bold text-blue-600">{inv.invoiceNo}</td>
+                    <tr key={inv.id} className={`${inv.orderType === "return" ? "bg-rose-50/20 hover:bg-rose-50/30" : "hover:bg-slate-50/50"} transition-colors`}>
+                      <td className="py-4 px-6 font-mono text-[13px] font-bold text-blue-600">
+                        <div className="flex items-center gap-2">
+                          {inv.invoiceNo}
+                          {inv.orderType === "return" && (
+                            <span className="bg-rose-50 text-rose-600 border border-rose-200 px-2 py-0.5 rounded text-[10px] font-black shrink-0">
+                              مرتجع ↩️
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-4 px-6 text-slate-500 text-[13px] font-medium">{formatDate(inv.createdAt)}</td>
                       <td className="py-4 px-6 font-bold text-slate-700">{inv.user?.name || "-"}</td>
-                      <td className="py-4 px-6 font-bold text-slate-500">{formatPrice(inv.total)}</td>
-                      <td className="py-4 px-6 font-bold text-rose-500">{formatPrice(inv.discount)}</td>
-                      <td className="py-4 px-6 font-black text-[15px] text-emerald-600">{formatPrice(inv.finalTotal)}</td>
+                      <td className="py-4 px-6 font-bold text-slate-500">
+                        {inv.orderType === "return" ? `-${formatPrice(Math.abs(inv.total))}` : formatPrice(inv.total)}
+                      </td>
+                      <td className="py-4 px-6 font-bold text-rose-500">
+                        {inv.orderType === "return" ? "-" : formatPrice(inv.discount)}
+                      </td>
+                      <td className={`py-4 px-6 font-black text-[15px] ${inv.orderType === "return" ? "text-rose-600" : "text-emerald-600"}`}>
+                        {inv.orderType === "return" ? `-${formatPrice(Math.abs(inv.finalTotal))}` : formatPrice(inv.finalTotal)}
+                      </td>
                       <td className="py-4 px-6">
                         <span className={`text-[12px] font-bold px-3 py-1.5 rounded-lg border ${
-                          inv.paymentType === "cash"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-blue-50 text-blue-700 border-blue-200"
+                          inv.orderType === "return"
+                            ? "bg-rose-50 text-rose-700 border-rose-200"
+                            : inv.paymentType === "cash"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-blue-50 text-blue-700 border-blue-200"
                         }`}>
-                          {inv.paymentType === "cash" ? "كاش" : "فيزا"}
+                          {inv.orderType === "return" ? "مرتجع" : inv.paymentType === "cash" ? "كاش" : "فيزا"}
                         </span>
                       </td>
                       <td className="py-4 px-6">
