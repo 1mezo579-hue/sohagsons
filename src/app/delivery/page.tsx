@@ -44,8 +44,8 @@ export default function DeliveryPage() {
   const { user, isChecked } = useRequireAuth(["admin", "manager", "cashier"]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "shipping" | "delivered">("all");
-  const [statuses, setStatuses] = useState<Record<number, "pending" | "shipping" | "delivered">>({});
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "shipping" | "delivered" | "collected">("all");
+  const [statuses, setStatuses] = useState<Record<number, "pending" | "shipping" | "delivered" | "collected">>({});
   const [expandedInvoice, setExpandedInvoice] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -81,7 +81,7 @@ export default function DeliveryPage() {
     }
   };
 
-  const updateStatus = (invoiceId: number, newStatus: "pending" | "shipping" | "delivered") => {
+  const updateStatus = (invoiceId: number, newStatus: "pending" | "shipping" | "delivered" | "collected") => {
     localStorage.setItem(`delivery_status_${invoiceId}`, newStatus);
     setStatuses(prev => ({ ...prev, [invoiceId]: newStatus }));
     toast.success("تم تحديث حالة الطلب بنجاح");
@@ -235,6 +235,7 @@ export default function DeliveryPage() {
               { key: "pending", label: "قيد التحضير 📦", count: invoices.filter(inv => statuses[inv.id] === "pending").length },
               { key: "shipping", label: "خرج للتوصيل 🚴", count: invoices.filter(inv => statuses[inv.id] === "shipping").length },
               { key: "delivered", label: "تم التوصيل ✅", count: invoices.filter(inv => statuses[inv.id] === "delivered").length },
+              { key: "collected", label: "تم التحصيل 💵", count: invoices.filter(inv => statuses[inv.id] === "collected").length },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -282,7 +283,9 @@ export default function DeliveryPage() {
                       ? "border-amber-200 hover:border-amber-300 shadow-amber-500/[0.02]"
                       : status === "shipping"
                         ? "border-cyan-200 hover:border-cyan-300 shadow-cyan-500/[0.02]"
-                        : "border-slate-100 hover:border-slate-200 opacity-80 hover:opacity-100"
+                        : status === "delivered"
+                          ? "border-emerald-200 hover:border-emerald-300 shadow-emerald-500/[0.02]"
+                          : "border-slate-200 opacity-65 hover:opacity-100 bg-slate-50/20"
                   }`}
                 >
                   {/* Top Bar / Card Header */}
@@ -295,11 +298,14 @@ export default function DeliveryPage() {
                             ? "bg-amber-50 text-amber-700 border border-amber-200"
                             : status === "shipping"
                               ? "bg-cyan-50 text-cyan-700 border border-cyan-200"
-                              : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : status === "delivered"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-green-50 text-green-700 border border-green-200"
                         }`}>
                           {status === "pending" && "📦 قيد التحضير"}
                           {status === "shipping" && "🚴 خرج للتوصيل"}
                           {status === "delivered" && "✅ تم التوصيل"}
+                          {status === "collected" && "💵 تم التحصيل"}
                         </span>
                       </div>
                       <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
@@ -313,7 +319,7 @@ export default function DeliveryPage() {
                         </span>
                       </div>
                     </div>
-
+ 
                     {/* Customer Info Card Snippet */}
                     <div className="bg-slate-50 rounded-2xl p-4 flex gap-4 items-center w-full lg:w-auto border border-slate-100">
                       <div className="w-10 h-10 bg-white shadow-sm rounded-xl flex items-center justify-center shrink-0">
@@ -326,7 +332,7 @@ export default function DeliveryPage() {
                         </p>
                       </div>
                     </div>
-
+ 
                     {/* Pricing Snippet */}
                     <div className="text-right shrink-0">
                       <p className="text-xs font-bold text-slate-400">الإجمالي المطلوب:</p>
@@ -335,7 +341,7 @@ export default function DeliveryPage() {
                         تشمل دليفري ({formatPrice(invoice.deliveryFee)})
                       </p>
                     </div>
-
+ 
                     {/* Quick Action Actions */}
                     <div className="flex gap-2 w-full lg:w-auto">
                       <button
@@ -345,7 +351,7 @@ export default function DeliveryPage() {
                       >
                         <Printer className="w-5 h-5" />
                       </button>
-
+ 
                       {/* Status quick cycle buttons */}
                       {status === "pending" && (
                         <button
@@ -366,11 +372,29 @@ export default function DeliveryPage() {
                         </button>
                       )}
                       {status === "delivered" && (
+                        <>
+                          <button
+                            onClick={() => updateStatus(invoice.id, "collected")}
+                            className="flex-1 lg:flex-none px-5 py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-2xl font-black text-sm transition-all shadow-md shadow-green-500/20 flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            تم التحصيل
+                          </button>
+                          <button
+                            onClick={() => updateStatus(invoice.id, "pending")}
+                            className="px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-2xl font-black text-xs transition-all"
+                            title="إعادة تحضير"
+                          >
+                            إعادة
+                          </button>
+                        </>
+                      )}
+                      {status === "collected" && (
                         <button
-                          onClick={() => updateStatus(invoice.id, "pending")}
-                          className="flex-1 lg:flex-none px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black text-sm transition-all"
+                          onClick={() => updateStatus(invoice.id, "delivered")}
+                          className="flex-1 lg:flex-none px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2"
                         >
-                          إعادة تحضير
+                          إلغاء التحصيل ↩️
                         </button>
                       )}
 
