@@ -81,6 +81,29 @@ export default function ExpensesPage() {
 
   const totalExpenses = filtered.reduce((acc, curr) => acc + curr.amount, 0);
 
+  const getLocalDateString = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatDateHeading = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("ar-EG", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  // Group by local date key
+  const groups: Record<string, Expense[]> = {};
+  filtered.forEach(e => {
+    const key = getLocalDateString(e.createdAt);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(e);
+  });
+
+  const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-red-200">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
@@ -122,58 +145,77 @@ export default function ExpensesPage() {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-right whitespace-nowrap">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
-                  <th className="px-6 py-4">التاريخ</th>
-                  <th className="px-6 py-4">التصنيف</th>
-                  <th className="px-6 py-4">البيان/الوصف</th>
-                  <th className="px-6 py-4">المبلغ</th>
-                  <th className="px-6 py-4">بواسطة</th>
-                  <th className="px-6 py-4 w-10"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filtered.map(e => (
-                  <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-slate-600">
-                        <Calendar className="w-4 h-4" />
-                        <span className="font-mono text-sm">{formatDate(e.createdAt)}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm">
-                        <Tag className="w-3.5 h-3.5" />
-                        {e.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-slate-900">{e.description || "-"}</td>
-                    <td className="px-6 py-4">
-                      <span className="font-black text-rose-600 text-lg flex items-center gap-1">
-                        {e.amount} <span className="text-xs">ج.م</span>
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-bold text-slate-500">{e.user.name}</td>
-                    <td className="px-6 py-4">
-                      <button onClick={() => handleDelete(e.id)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-bold">
-                      لا توجد مصروفات مسجلة
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="space-y-6">
+          {sortedDates.map(dateKey => {
+            const dayExpenses = groups[dateKey];
+            const dayTotal = dayExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+            return (
+              <div key={dateKey} className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+                {/* Day Header */}
+                <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <div className="flex items-center gap-2 font-black text-slate-900 text-base sm:text-lg">
+                    <Calendar className="w-5 h-5 text-red-500" />
+                    <span>{formatDateHeading(dateKey)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-400">إجمالي اليوم:</span>
+                    <span className="bg-red-50 border border-red-100 text-rose-600 px-3.5 py-1.5 rounded-xl font-black text-base">
+                      {formatPrice(dayTotal)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Day Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right whitespace-nowrap">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-slate-400 font-bold text-xs uppercase tracking-wider bg-slate-50/30">
+                        <th className="px-6 py-3">الوقت</th>
+                        <th className="px-6 py-3">التصنيف</th>
+                        <th className="px-6 py-3">البيان/الوصف</th>
+                        <th className="px-6 py-3">المبلغ</th>
+                        <th className="px-6 py-3">بواسطة</th>
+                        <th className="px-6 py-3 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {dayExpenses.map(e => (
+                        <tr key={e.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4 font-mono text-sm text-slate-500">
+                            {new Date(e.createdAt).toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs">
+                              <Tag className="w-3 h-3" />
+                              {e.category}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 font-bold text-slate-800 text-sm">{e.description || "-"}</td>
+                          <td className="px-6 py-4">
+                            <span className="font-black text-rose-600 text-base">
+                              {formatPrice(e.amount)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-xs font-bold text-slate-400">{e.user.name}</td>
+                          <td className="px-6 py-4">
+                            <button onClick={() => handleDelete(e.id)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
+
+          {filtered.length === 0 && (
+            <div className="bg-white rounded-3xl border border-slate-200 py-12 px-6 text-center text-slate-400 font-bold">
+              لا توجد مصروفات مسجلة
+            </div>
+          )}
         </div>
       </div>
 

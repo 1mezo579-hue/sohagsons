@@ -13,7 +13,7 @@ export async function PUT(
     if (!id) return NextResponse.json({ error: "معرّف المنتج غير صالح" }, { status: 400 });
 
     const body = await req.json();
-    const { name, barcode, categoryId, priceType, price, costPrice, stock, minStock, unit } = body;
+    const { name, barcode, categoryId, priceType, price, costPrice, stock, minStock, unit, expiryDate } = body;
 
     if (!name?.trim()) {
       return NextResponse.json({ error: "اسم المنتج مطلوب" }, { status: 400 });
@@ -31,6 +31,7 @@ export async function PUT(
         stock: Number(stock) || 0,
         minStock: Number(minStock) || 5,
         unit: unit || "piece",
+        expiryDate: expiryDate || null,
       },
       include: { category: true },
     });

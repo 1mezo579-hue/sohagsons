@@ -45,6 +45,7 @@ export default function CashierPage() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState({ name: "", barcode: "", price: "" });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [isUpdatingPrice, setIsUpdatingPrice] = useState(false);
   const quickAddNameRef = useRef<HTMLInputElement>(null);
@@ -216,8 +217,8 @@ export default function CashierPage() {
     cart.addItem(item);
   };
   
-  const handleQuickPriceUpdate = async () => {
-    if (!editingProduct || !newPrice) return;
+  const handleQuickProductUpdate = async () => {
+    if (!editingProduct || !newPrice || !newName.trim()) return;
     setIsUpdatingPrice(true);
     try {
       const res = await fetch(`/api/products/${editingProduct.id}`, {
@@ -225,6 +226,7 @@ export default function CashierPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...editingProduct,
+          name: newName.trim(),
           price: parseFloat(newPrice),
           categoryId: editingProduct.category?.id || null, // Ensure ID is passed not object
         }),
@@ -232,11 +234,11 @@ export default function CashierPage() {
       if (res.ok) {
         const updated = await res.json();
         setAllProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
-        cart.updatePrice(updated.id, updated.price); // Update cart price too
-        toast.success(`تم تحديث سعر ${updated.name} إلى ${updated.price}`);
+        cart.updateProductDetails(updated.id, updated.name, updated.price); // Update cart details too
+        toast.success(`تم تحديث الصنف ${updated.name} بنجاح`);
         setEditingProduct(null);
       } else {
-        toast.error("فشل تحديث السعر");
+        toast.error("فشل تحديث الصنف");
       }
     } catch {
       toast.error("خطأ في الاتصال بالسيرفر");
@@ -608,11 +610,12 @@ export default function CashierPage() {
                     onClick={(e) => { 
                       e.stopPropagation(); 
                       setEditingProduct(product); 
+                      setNewName(product.name);
                       setNewPrice(product.price.toString());
                       setTimeout(() => editPriceRef.current?.focus(), 100);
                     }}
                     className="absolute top-3 left-3 p-2 bg-white/90 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:text-white text-slate-400 shadow-sm border border-slate-100 z-10"
-                    title="تعديل السعر"
+                    title="تعديل الاسم والسعر"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
@@ -1179,7 +1182,7 @@ export default function CashierPage() {
         </div>
       )}
 
-      {/* ─── Quick Price Edit Modal ─── */}
+      {/* ─── Quick Product Edit Modal ─── */}
       {editingProduct && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm no-print">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-slide-up">
@@ -1194,36 +1197,50 @@ export default function CashierPage() {
                  <Edit2 className="w-8 h-8 text-white" />
                </div>
                <h3 className="text-white font-black text-xl mb-1">{editingProduct.name}</h3>
-               <p className="text-slate-400 text-sm font-bold">تعديل سعر البيع الحالي</p>
+               <p className="text-slate-400 text-sm font-bold">تعديل الاسم وسعر البيع الحالي</p>
             </div>
             
-            <div className="p-8 space-y-6">
-              <div className="relative">
+            <div className="p-8 space-y-4">
+              <div>
+                <label className="block text-xs font-black text-slate-500 mb-1.5">اسم الصنف</label>
                 <input
-                  ref={editPriceRef}
-                  type="number"
-                  step="0.01"
-                  value={newPrice}
-                  onChange={e => setNewPrice(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleQuickPriceUpdate()}
-                  className="w-full px-6 py-6 pl-16 bg-slate-50 border-2 border-slate-100 rounded-3xl font-black text-4xl text-center text-blue-600 focus:border-blue-500 focus:bg-white outline-none transition-all"
-                  placeholder="0.00"
+                  type="text"
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl font-bold text-slate-800 focus:border-blue-500 focus:bg-white outline-none transition-all text-base text-right font-sans"
+                  placeholder="اسم الصنف..."
                 />
-                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xl">ج.م</span>
               </div>
 
-              <div className="flex gap-3">
+              <div>
+                <label className="block text-xs font-black text-slate-500 mb-1.5">سعر البيع الجديد</label>
+                <div className="relative">
+                  <input
+                    ref={editPriceRef}
+                    type="number"
+                    step="0.01"
+                    value={newPrice}
+                    onChange={e => setNewPrice(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && handleQuickProductUpdate()}
+                    className="w-full px-6 py-4 pl-16 bg-slate-50 border-2 border-slate-200 rounded-2xl font-black text-2xl text-center text-blue-600 focus:border-blue-500 focus:bg-white outline-none transition-all"
+                    placeholder="0.00"
+                  />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-black text-lg">ج.م</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
                 <button
-                  onClick={handleQuickPriceUpdate}
+                  onClick={handleQuickProductUpdate}
                   disabled={isUpdatingPrice}
-                  className="flex-[2] py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-2xl font-black text-lg transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2"
+                  className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-2xl font-black text-base transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2"
                 >
                   {isUpdatingPrice ? <span className="animate-spin text-2xl">⟳</span> : null}
-                  {isUpdatingPrice ? "جاري الحفظ..." : "حفظ السعر الجديد"}
+                  {isUpdatingPrice ? "جاري الحفظ..." : "حفظ التعديلات"}
                 </button>
                 <button
                   onClick={() => setEditingProduct(null)}
-                  className="flex-1 py-5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black transition-all"
+                  className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black transition-all"
                 >
                   إلغاء
                 </button>

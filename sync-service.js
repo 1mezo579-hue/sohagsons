@@ -8,13 +8,14 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function syncAll() {
-  console.log('--- بدء دورة المزامنة الذكية ---');
+  console.log('--- بدء دورة المزامنة الذكية السريعة ---');
   
   try {
-    // 1. Sync Invoices (Unsynced only)
+    // 1. Sync Invoices (Unsynced only) - Keep one by one for complex relations
     const unsyncedInvoices = await prismaLocal.invoice.findMany({
       where: { synced: false },
-      include: { items: true }
+      include: { items: true },
+      take: 20
     });
 
     for (const inv of unsyncedInvoices) {
@@ -34,29 +35,37 @@ async function syncAll() {
             quantity: item.quantity, price: item.price, total: item.total
           });
         }
-        // Mark as synced
         await prismaLocal.invoice.update({ where: { id: inv.id }, data: { synced: true } });
         console.log(`✓ تم بنجاح.`);
-      } else {
-        console.error('!! خطأ:', error.message);
       }
     }
 
-    // 2. Sync Products (Unsynced only - i.e. new or updated)
+    // 2. Sync Products (Bulk Upsert - 100 at a time)
     const unsyncedProducts = await prismaLocal.product.findMany({
-      where: { synced: false }
+      where: { synced: false },
+      take: 100
     });
 
-    for (const p of unsyncedProducts) {
-      console.log(`مزامنة صنف: ${p.name}`);
-      const { error } = await supabase.from('Product').upsert({
+    if (unsyncedProducts.length > 0) {
+      console.log(`مزامنة ${unsyncedProducts.length} صنف بالجملة...`);
+      const productsToUpsert = unsyncedProducts.map(p => ({
         id: p.id, name: p.name, barcode: p.barcode, categoryId: p.categoryId,
         priceType: p.priceType, price: p.price, costPrice: p.costPrice,
-        stock: p.stock, minStock: p.minStock, unit: p.unit, createdAt: p.createdAt
-      });
+        stock: p.stock, minStock: p.minStock, unit: p.unit, expiryDate: p.expiryDate,
+        createdAt: p.createdAt, updatedAt: p.updatedAt
+      }));
+
+      const { error } = await supabase.from('Product').upsert(productsToUpsert);
 
       if (!error) {
-        await prismaLocal.product.update({ where: { id: p.id }, data: { synced: true } });
+        const ids = unsyncedProducts.map(p => p.id);
+        await prismaLocal.product.updateMany({
+          where: { id: { in: ids } },
+          data: { synced: true }
+        });
+        console.log(`✓ تم مزامنة الدفعة.`);
+      } else {
+        console.error('!! خطأ في المزامنة بالجملة:', error.message);
       }
     }
 
@@ -65,5 +74,6 @@ async function syncAll() {
   }
 }
 
-setInterval(syncAll, 30000); // كل 30 ثانية
+// تشغيل المزامنة كل 5 ثواني لتسريع العملية الأولية
+setInterval(syncAll, 5000); 
 syncAll();

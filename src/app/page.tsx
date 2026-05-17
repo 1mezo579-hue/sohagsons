@@ -36,11 +36,20 @@ const ALL_MODULES = [
   },
   {
     title: "العملاء",
-    desc: "إدارة العملاء ونقاط الولاء والدليفري",
-    icon: Truck,
+    desc: "إدارة العملاء ونقاط الولاء",
+    icon: Users,
     href: "/customers",
     bg: "from-indigo-500 to-purple-600",
     shadow: "shadow-indigo-500/30",
+    roles: ["admin", "manager", "cashier"],
+  },
+  {
+    title: "طلبات الدليفري",
+    desc: "متابعة وتوصيل طلبات الدليفري النشطة",
+    icon: Truck,
+    href: "/delivery",
+    bg: "from-cyan-500 to-blue-600",
+    shadow: "shadow-cyan-500/30",
     roles: ["admin", "manager", "cashier"],
   },
   {

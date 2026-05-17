@@ -17,6 +17,7 @@ export async function GET() {
         minStock: true,
         priceType: true,
         unit: true,
+        expiryDate: true,
         synced: true,
         categoryId: true,
         category: { select: { name: true } },
@@ -33,8 +34,7 @@ export async function GET() {
 // ─── POST create product ─────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { name, barcode, categoryId, priceType, price, costPrice, stock, minStock, unit } = body;
+    const { name, barcode, categoryId, priceType, price, costPrice, stock, minStock, unit, expiryDate } = body;
 
     if (!name?.trim() || price === undefined) {
       return NextResponse.json({ error: "الاسم والسعر مطلوبان" }, { status: 400 });
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
         stock: Number(stock) || 0,
         minStock: Number(minStock) || 5,
         unit: unit || "piece",
+        expiryDate: expiryDate || null,
       },
       include: { category: true },
     });

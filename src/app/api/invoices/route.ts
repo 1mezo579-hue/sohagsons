@@ -18,7 +18,7 @@ export async function GET() {
         deliveryFee: true,
         createdAt: true,
         user: { select: { name: true } },
-        customer: { select: { name: true, phone: true } },
+        customer: { select: { name: true, phone: true, address: true } },
         items: {
           select: {
             id: true,
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
         orderType: true,
         deliveryFee: true,
         createdAt: true,
-        customer: { select: { name: true, phone: true, points: true } },
+        customer: { select: { name: true, phone: true, points: true, address: true } },
         items: {
           select: {
             id: true,

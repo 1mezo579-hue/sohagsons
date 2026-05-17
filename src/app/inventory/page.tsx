@@ -25,6 +25,7 @@ interface Product {
   minStock: number;
   priceType: string;
   unit: string;
+  expiryDate?: string | null;
   category: { id: number; name: string } | null;
   createdAt: string;
 }
@@ -53,7 +54,7 @@ export default function InventoryPage() {
   // Forms state
   const [productForm, setProductForm] = useState({
     name: "", barcode: "", categoryId: "", priceType: "unit" as "unit" | "weight",
-    price: "", costPrice: "", stock: "", minStock: "5", unit: "piece",
+    price: "", costPrice: "", stock: "", minStock: "5", unit: "piece", expiryDate: "",
   });
   const [lastDefaults, setLastDefaults] = useState({
     unit: "piece", priceType: "unit" as "unit" | "weight", categoryId: ""
@@ -118,6 +119,7 @@ export default function InventoryPage() {
       price: parseFloat(productForm.price), costPrice: parseFloat(productForm.costPrice) || 0,
       stock: parseFloat(productForm.stock) || 0, minStock: parseFloat(productForm.minStock) || 5,
       unit: productForm.unit,
+      expiryDate: productForm.expiryDate || null,
     };
     try {
       const url = editingProduct ? `/api/products/${editingProduct.id}` : "/api/products";
@@ -144,7 +146,8 @@ export default function InventoryPage() {
             priceType: productForm.priceType,   // Keep price type
             price: "", costPrice: "", stock: "", 
             minStock: "5", 
-            unit: productForm.unit              // Keep unit
+            unit: productForm.unit,             // Keep unit
+            expiryDate: "",
           });
           barcodeInputRef.current?.focus(); // Instant focus for next barcode
           
@@ -236,7 +239,8 @@ export default function InventoryPage() {
       "الرصيد": p.stock,
       "القسم": p.category?.name || "",
       "طريقة البيع": p.priceType === "weight" ? "وزن" : "قطعة",
-      "الوحدة": p.unit
+      "الوحدة": p.unit,
+      "تاريخ الصلاحية": p.expiryDate || ""
     }));
     
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -268,6 +272,7 @@ export default function InventoryPage() {
           category: row["القسم"] || row["category"],
           priceType: (row["طريقة البيع"] === "وزن" || row["priceType"] === "weight") ? "weight" : "unit",
           unit: row["الوحدة"] || row["unit"] || "piece",
+          expiryDate: row["تاريخ الصلاحية"] || row["expiryDate"] || null,
         }));
 
         const toastId = toast.loading("جاري قراءة واستيراد البيانات...");
@@ -329,7 +334,8 @@ export default function InventoryPage() {
       categoryId: lastDefaults.categoryId, 
       priceType: lastDefaults.priceType, 
       price: "", costPrice: "", stock: "", minStock: "5", 
-      unit: lastDefaults.unit 
+      unit: lastDefaults.unit,
+      expiryDate: "",
     });
   };
 
@@ -345,6 +351,7 @@ export default function InventoryPage() {
       stock: product.stock.toString(),
       minStock: product.minStock.toString(), 
       unit: product.unit,
+      expiryDate: product.expiryDate || "",
     });
     setShowProductForm(true);
   };
@@ -511,6 +518,7 @@ export default function InventoryPage() {
                         <th className="py-5 px-6">التكلفة</th>
                         <th className="py-5 px-6">المخزون الفعلي</th>
                         <th className="py-5 px-6">القسم</th>
+                        <th className="py-5 px-6">تاريخ الصلاحية</th>
                         <th className="py-5 px-6 rounded-tl-[2rem]">إجراءات</th>
                       </tr>
                     </thead>
@@ -533,6 +541,27 @@ export default function InventoryPage() {
                             <td className="py-5 px-6">
                               <span className="bg-purple-50 text-purple-700 border border-purple-100 px-3 py-1.5 rounded-xl font-bold text-[13px] shadow-sm">{product.category?.name || "عام"}</span>
                             </td>
+                            <td className="py-5 px-6">
+                              {product.expiryDate ? (
+                                <span className={`px-3 py-1.5 rounded-xl font-bold text-[13px] shadow-sm border ${
+                                  (() => {
+                                    const d = new Date(product.expiryDate);
+                                    if (isNaN(d.getTime())) return "bg-blue-50 text-blue-700 border-blue-100";
+                                    const now = new Date();
+                                    now.setHours(0, 0, 0, 0);
+                                    const nearExpiryLimit = new Date();
+                                    nearExpiryLimit.setDate(nearExpiryLimit.getDate() + 30);
+                                    if (d < now) return "bg-rose-50 text-rose-700 border-rose-200";
+                                    if (d <= nearExpiryLimit) return "bg-amber-50 text-amber-700 border-amber-200 animate-pulse";
+                                    return "bg-emerald-50 text-emerald-700 border-emerald-100";
+                                  })()
+                                }`}>
+                                  {product.expiryDate}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 font-bold">-</span>
+                              )}
+                            </td>
                             <td className="py-5 px-6 opacity-50 group-hover:opacity-100 transition-opacity">
                               <div className="flex items-center gap-2">
                                 <button onClick={() => openStockModal("in", product.id.toString())} title="إضافة رصيد" className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center hover:bg-emerald-600 hover:border-emerald-600 hover:text-white text-emerald-600 transition-all shadow-sm hover:shadow-lg hover:-translate-y-1">
@@ -554,7 +583,7 @@ export default function InventoryPage() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={7} className="py-20 text-center text-slate-400 font-bold text-lg italic">
+                          <td colSpan={8} className="py-20 text-center text-slate-400 font-bold text-lg italic">
                             {products.length === 0 ? "جاري تحميل المنتجات أو لا يوجد بيانات..." : "لا توجد نتائج تطابق بحثك"}
                           </td>
                         </tr>
@@ -703,7 +732,16 @@ export default function InventoryPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-6 border-t border-slate-100 pt-8">
-                <div>
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-sm font-black text-slate-700 mb-2">تاريخ الصلاحية</label>
+                  <input 
+                    type="date" 
+                    value={productForm.expiryDate} 
+                    onChange={(e) => setProductForm({ ...productForm, expiryDate: e.target.value })} 
+                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-700" 
+                  />
+                </div>
+                <div className="col-span-2 md:col-span-1">
                   <label className="block text-sm font-black text-slate-700 mb-2">
                     رصيد المخزن الحالي
                     <span className={`mr-2 text-xs px-2 py-0.5 rounded-full font-black ${
@@ -719,7 +757,7 @@ export default function InventoryPage() {
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 font-black text-xs">{productForm.priceType === "weight" ? "كجم" : "قطعة"}</span>
                   </div>
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-black text-rose-600 mb-2">
                     حد التنبيه بالنواقص
                     <span className={`mr-2 text-xs px-2 py-0.5 rounded-full font-black ${

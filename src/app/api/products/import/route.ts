@@ -41,6 +41,7 @@ export async function POST(req: Request) {
             stock: parseFloat(item.stock) || 0,
             minStock: parseFloat(item.minStock) || 5,
             unit: item.unit || "piece",
+            expiryDate: item.expiryDate ? String(item.expiryDate) : null,
           }
         });
         successCount++;
