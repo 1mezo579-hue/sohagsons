@@ -258,6 +258,12 @@ async function main() {
   let barcodeCounter = 822100000;
   console.log("Starting Seeding...");
 
+  const productCount = await prisma.product.count();
+  if (productCount > 0) {
+    console.log("Database already has products. Skipping product seeding to preserve your custom catalog and deletions!");
+    return;
+  }
+
   for (const cData of categoriesData) {
     const category = await prisma.category.upsert({
       where: { name: cData.name },

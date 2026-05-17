@@ -72,7 +72,7 @@ model InvoiceItem {
   invoiceId Int
   invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   productId Int
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Float
   price     Float
   total     Float
@@ -81,7 +81,7 @@ model InvoiceItem {
 model StockLog {
   id        Int      @id @default(autoincrement())
   productId Int
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   type      String
   quantity  Float
   reason    String
@@ -152,7 +152,7 @@ model TraderInvoiceItem {
   traderInvoiceId Int
   traderInvoice   TraderInvoice @relation(fields: [traderInvoiceId], references: [id], onDelete: Cascade)
   productId       Int?
-  product         Product?      @relation(fields: [productId], references: [id])
+  product         Product?      @relation(fields: [productId], references: [id], onDelete: Cascade)
   description     String
   quantity        Float
   price           Float
