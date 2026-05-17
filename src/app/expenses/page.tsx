@@ -24,6 +24,11 @@ export default function ExpensesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ amount: "", category: "أخرى", description: "" });
+  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
+
+  const toggleDay = (dateKey: string) => {
+    setExpandedDays(prev => ({ ...prev, [dateKey]: !prev[dateKey] }));
+  };
 
   useEffect(() => {
     fetchExpenses();
@@ -149,64 +154,81 @@ export default function ExpensesPage() {
           {sortedDates.map(dateKey => {
             const dayExpenses = groups[dateKey];
             const dayTotal = dayExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+            const isExpanded = !!expandedDays[dateKey];
             return (
-              <div key={dateKey} className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                {/* Day Header */}
-                <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                  <div className="flex items-center gap-2 font-black text-slate-900 text-base sm:text-lg">
-                    <Calendar className="w-5 h-5 text-red-500" />
+              <div key={dateKey} className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
+                {/* Day Header - Clickable Accordion */}
+                <div 
+                  onClick={() => toggleDay(dateKey)}
+                  className="bg-slate-50 border-b border-slate-200 px-6 py-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer hover:bg-slate-100/70 active:bg-slate-100 transition-all select-none"
+                >
+                  <div className="flex items-center gap-3 font-black text-slate-900 text-base sm:text-lg">
+                    <Calendar className="w-5.5 h-5.5 text-red-500 shrink-0" />
                     <span>{formatDateHeading(dateKey)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-400">إجمالي اليوم:</span>
-                    <span className="bg-red-50 border border-red-100 text-rose-600 px-3.5 py-1.5 rounded-xl font-black text-base">
-                      {formatPrice(dayTotal)}
+                    <span className="bg-slate-200/70 text-slate-600 px-2.5 py-1 rounded-lg text-xs font-bold mr-2">
+                      {dayExpenses.length} {dayExpenses.length === 1 ? "مصروف" : "مصروفات"}
                     </span>
+                  </div>
+                  <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-400">إجمالي اليوم:</span>
+                      <span className="bg-red-50 border border-red-100 text-rose-600 px-3.5 py-1.5 rounded-xl font-black text-base">
+                        {formatPrice(dayTotal)}
+                      </span>
+                    </div>
+                    {/* Collapsible arrow indicator */}
+                    <div className="w-8 h-8 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-950 transition-transform">
+                      <span className={`text-xs transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}>
+                        ▼
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Day Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-right whitespace-nowrap">
-                    <thead>
-                      <tr className="border-b border-slate-100 text-slate-400 font-bold text-xs uppercase tracking-wider bg-slate-50/30">
-                        <th className="px-6 py-3">الوقت</th>
-                        <th className="px-6 py-3">التصنيف</th>
-                        <th className="px-6 py-3">البيان/الوصف</th>
-                        <th className="px-6 py-3">المبلغ</th>
-                        <th className="px-6 py-3">بواسطة</th>
-                        <th className="px-6 py-3 w-10"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {dayExpenses.map(e => (
-                        <tr key={e.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4 font-mono text-sm text-slate-500">
-                            {new Date(e.createdAt).toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' })}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs">
-                              <Tag className="w-3 h-3" />
-                              {e.category}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 font-bold text-slate-800 text-sm">{e.description || "-"}</td>
-                          <td className="px-6 py-4">
-                            <span className="font-black text-rose-600 text-base">
-                              {formatPrice(e.amount)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-xs font-bold text-slate-400">{e.user.name}</td>
-                          <td className="px-6 py-4">
-                            <button onClick={() => handleDelete(e.id)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
+                {isExpanded && (
+                  <div className="overflow-x-auto border-t border-slate-100 animate-fade-in">
+                    <table className="w-full text-right whitespace-nowrap">
+                      <thead>
+                        <tr className="border-b border-slate-100 text-slate-400 font-bold text-xs uppercase tracking-wider bg-slate-50/30">
+                          <th className="px-6 py-3">الوقت</th>
+                          <th className="px-6 py-3">التصنيف</th>
+                          <th className="px-6 py-3">البيان/الوصف</th>
+                          <th className="px-6 py-3">المبلغ</th>
+                          <th className="px-6 py-3">بواسطة</th>
+                          <th className="px-6 py-3 w-10"></th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {dayExpenses.map(e => (
+                          <tr key={e.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-4 font-mono text-sm text-slate-500">
+                              {new Date(e.createdAt).toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs">
+                                <Tag className="w-3 h-3" />
+                                {e.category}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 font-bold text-slate-800 text-sm">{e.description || "-"}</td>
+                            <td className="px-6 py-4">
+                              <span className="font-black text-rose-600 text-base">
+                                {formatPrice(e.amount)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-bold text-slate-400">{e.user.name}</td>
+                            <td className="px-6 py-4">
+                              <button onClick={() => handleDelete(e.id)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             );
           })}
