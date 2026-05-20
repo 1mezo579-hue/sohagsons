@@ -48,6 +48,10 @@ export default function DeliveryPage() {
   const [statuses, setStatuses] = useState<Record<number, "pending" | "shipping" | "delivered" | "collected">>({});
   const [expandedInvoice, setExpandedInvoice] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // States for rider changes and printing states
+  const [riderChanges, setRiderChanges] = useState<Record<number, string>>({});
+  const [printingIds, setPrintingIds] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     fetchInvoices();
@@ -63,13 +67,18 @@ export default function DeliveryPage() {
         const deliveryOnly = data.filter((inv: any) => inv.orderType === "delivery");
         setInvoices(deliveryOnly);
 
-        // Load statuses from localStorage
+        // Load statuses and rider changes from localStorage
         const storedStatuses: Record<number, any> = {};
+        const storedChanges: Record<number, string> = {};
         deliveryOnly.forEach((inv: Invoice) => {
           const status = localStorage.getItem(`delivery_status_${inv.id}`);
           storedStatuses[inv.id] = status || "pending"; // Default to pending
+          
+          const change = localStorage.getItem(`delivery_change_${inv.id}`);
+          storedChanges[inv.id] = change || "";
         });
         setStatuses(storedStatuses);
+        setRiderChanges(storedChanges);
       } else {
         toast.error("فشل في تحميل الطلبات");
       }
@@ -87,11 +96,50 @@ export default function DeliveryPage() {
     toast.success("تم تحديث حالة الطلب بنجاح");
   };
 
-  const printOrder = (invoice: Invoice) => {
-    // Basic printable receipt styling
+  const updateRiderChange = (invoiceId: number, value: string) => {
+    localStorage.setItem(`delivery_change_${invoiceId}`, value);
+    setRiderChanges(prev => ({ ...prev, [invoiceId]: value }));
+  };
+
+  const printOrder = async (invoice: Invoice) => {
+    setPrintingIds(prev => ({ ...prev, [invoice.id]: true }));
+    const riderChangeVal = parseFloat(riderChanges[invoice.id] || "0");
+
+    // Prepare the payload for silent print API
+    const printPayload = {
+      ...invoice,
+      riderChange: riderChangeVal
+    };
+
+    try {
+      toast.loading("جاري الطباعة الصامتة...", { id: `print-${invoice.id}` });
+      const res = await fetch("/api/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(printPayload),
+      });
+
+      if (res.ok) {
+        toast.success("تم إرسال الفاتورة للطابعة بنجاح 🎉", { id: `print-${invoice.id}` });
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "خطأ في السيرفر");
+      }
+    } catch (error: any) {
+      console.warn("Silent printing failed, falling back to browser print dialog:", error);
+      toast.error("فشل في الطباعة الصامتة، جاري الفتح عبر المتصفح...", { id: `print-${invoice.id}` });
+      
+      // Fallback: Browser printing
+      fallbackPrintOrder(invoice, riderChangeVal);
+    } finally {
+      setPrintingIds(prev => ({ ...prev, [invoice.id]: false }));
+    }
+  };
+
+  const fallbackPrintOrder = (invoice: Invoice, riderChangeVal: number) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      toast.error("فشل فتح نافذة الطباعة");
+      toast.error("فشل فتح نافذة الطباعة للمتصفح");
       return;
     }
 
@@ -101,6 +149,16 @@ export default function DeliveryPage() {
         <span>${formatPrice(item.total)}</span>
       </div>
     `).join("");
+
+    let riderChangeHtml = "";
+    if (riderChangeVal > 0) {
+      riderChangeHtml = `
+        <div class="row" style="color: #b45309; font-weight: bold; border-top: 1px dashed #d97706; padding-top: 5px; margin-top: 5px;">
+          <span>الباقي مع الطيار:</span>
+          <span>${formatPrice(riderChangeVal)}</span>
+        </div>
+      `;
+    }
 
     printWindow.document.write(`
       <html>
@@ -150,6 +208,7 @@ export default function DeliveryPage() {
               <span>الخصم:</span>
               <span>-${formatPrice(invoice.discount)}</span>
             </div>
+            ${riderChangeHtml}
             <div class="row total">
               <span>الإجمالي المطلوب سداده:</span>
               <span>${formatPrice(invoice.finalTotal)}</span>
@@ -333,6 +392,23 @@ export default function DeliveryPage() {
                       </div>
                     </div>
  
+                    {/* Rider Change (الباقي مع الطيار) */}
+                    <div className="bg-amber-50/60 rounded-2xl p-3 border border-amber-100 flex flex-col items-end w-full lg:w-44 shadow-sm shrink-0">
+                      <label className="text-[11px] font-black text-amber-800 mb-1 tracking-wide">الباقي مع الطيار (الفكة):</label>
+                      <div className="relative w-full">
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={riderChanges[invoice.id] || ""}
+                          onChange={(e) => updateRiderChange(invoice.id, e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-white border border-amber-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl px-2.5 py-1.5 text-left font-mono font-bold text-slate-800 outline-none transition-all text-xs"
+                        />
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">ج.م</span>
+                      </div>
+                    </div>
+
                     {/* Pricing Snippet */}
                     <div className="text-right shrink-0">
                       <p className="text-xs font-bold text-slate-400">الإجمالي المطلوب:</p>
@@ -346,10 +422,19 @@ export default function DeliveryPage() {
                     <div className="flex gap-2 w-full lg:w-auto">
                       <button
                         onClick={() => printOrder(invoice)}
-                        className="p-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl transition-all shadow-sm flex items-center justify-center"
+                        disabled={printingIds[invoice.id]}
+                        className={`p-3.5 rounded-2xl transition-all shadow-sm flex items-center justify-center ${
+                          printingIds[invoice.id]
+                            ? "bg-blue-50 text-blue-600 cursor-not-allowed"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                        }`}
                         title="طباعة إيصال التوصيل"
                       >
-                        <Printer className="w-5 h-5" />
+                        {printingIds[invoice.id] ? (
+                          <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Printer className="w-5 h-5" />
+                        )}
                       </button>
  
                       {/* Status quick cycle buttons */}
@@ -461,7 +546,7 @@ export default function DeliveryPage() {
 
                       {/* Pricing Table Detail */}
                       <div className="bg-white p-5 rounded-2xl border border-slate-100 flex flex-wrap gap-6 justify-between items-center text-sm">
-                        <div className="flex gap-6">
+                        <div className="flex flex-wrap gap-6">
                           <div>
                             <span className="text-slate-400 font-bold">المجموع الفرعي:</span>
                             <span className="font-black text-slate-800 mr-2">{formatPrice(invoice.total)}</span>
@@ -474,6 +559,12 @@ export default function DeliveryPage() {
                             <span className="text-slate-400 font-bold">الخصومات:</span>
                             <span className="font-black text-rose-600 mr-2">-{formatPrice(invoice.discount)}</span>
                           </div>
+                          {riderChanges[invoice.id] && parseFloat(riderChanges[invoice.id]) > 0 && (
+                            <div>
+                              <span className="text-amber-600 font-black">الباقي مع الطيار:</span>
+                              <span className="font-black text-amber-700 mr-2">{formatPrice(parseFloat(riderChanges[invoice.id]))}</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="font-black text-slate-900 text-lg">المبلغ المطلوب من العميل:</span>

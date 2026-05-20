@@ -23,9 +23,8 @@ export function formatDate(date: Date | string): string {
   });
 }
 
-export function generateInvoiceNo(): string {
+export function generateInvoiceNo(prefix: string = "INV"): string {
   const now = new Date();
-  const prefix = "INV";
   const timestamp = now.getTime().toString(36).toUpperCase();
   return `${prefix}-${timestamp}`;
 }

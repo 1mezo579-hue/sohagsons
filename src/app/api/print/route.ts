@@ -8,56 +8,86 @@ export async function POST(req: Request) {
   try {
     const invoice = await req.json();
 
-    // 1. Format the receipt text
+    // 1. Format the receipt text for 80mm (approx 42-48 columns wide)
     let receiptText = "";
-    receiptText += "ماركت أبناء سوهاج\n";
-    receiptText += "--------------------------------\n";
+    receiptText += "==========================================\n";
+    receiptText += "            ماركت أبناء سوهاج             \n";
+    receiptText += "==========================================\n";
     receiptText += `رقم الفاتورة: ${invoice.invoiceNo}\n`;
     receiptText += `التاريخ: ${new Date(invoice.createdAt).toLocaleString("ar-EG")}\n`;
+    receiptText += `نوع الطلب: ${invoice.orderType === "delivery" ? "دليفري (توصيل)" : "صالة"}\n`;
+
     if (invoice.customer) {
+      receiptText += "------------------------------------------\n";
       receiptText += `العميل: ${invoice.customer.name}\n`;
+      if (invoice.customer.phone) {
+        receiptText += `الهاتف: ${invoice.customer.phone}\n`;
+      }
+      if (invoice.customer.address) {
+        receiptText += `العنوان: ${invoice.customer.address}\n`;
+      }
     }
-    receiptText += "--------------------------------\n";
-    receiptText += "الصنف            الكمية    السعر\n";
-    receiptText += "--------------------------------\n";
+
+    receiptText += "------------------------------------------\n";
+    receiptText += "الصنف                 الكمية   السعر  الإجمالي\n";
+    receiptText += "------------------------------------------\n";
 
     invoice.items.forEach((item: any) => {
-      const name = item.product.name.padEnd(16).substring(0, 16);
-      const qty = item.quantity.toString().padEnd(8);
-      const price = item.total.toFixed(2).toString();
-      receiptText += `${name} ${qty} ${price}\n`;
+      // Pad and align columns beautifully
+      const name = (item.product.name || "").padEnd(20).substring(0, 20);
+      const qty = (item.quantity || 0).toString().padStart(6);
+      const price = (item.price || 0).toFixed(2).toString().padStart(7);
+      const total = (item.total || 0).toFixed(2).toString().padStart(9);
+      receiptText += `${name} ${qty} ${price} ${total}\n`;
     });
 
-    receiptText += "--------------------------------\n";
-    receiptText += `المجموع: ${invoice.total.toFixed(2)}\n`;
+    receiptText += "------------------------------------------\n";
+    receiptText += `المجموع الفرعي:   ${(invoice.total || 0).toFixed(2).padStart(24)}\n`;
     if (invoice.deliveryFee > 0) {
-      receiptText += `التوصيل: ${invoice.deliveryFee.toFixed(2)}\n`;
+      receiptText += `رسوم التوصيل:     ${(invoice.deliveryFee || 0).toFixed(2).padStart(24)}\n`;
     }
-    receiptText += `الخصم: ${invoice.discount.toFixed(2)}\n`;
-    receiptText += `الإجمالي: ${invoice.finalTotal.toFixed(2)}\n`;
-    receiptText += "--------------------------------\n";
-    receiptText += "شكراً لتعاملكم معنا\n";
+    if (invoice.discount > 0) {
+      receiptText += `الخصم:            ${(invoice.discount || 0).toFixed(2).padStart(24)}\n`;
+    }
+    receiptText += "------------------------------------------\n";
+    receiptText += `الإجمالي المطلوب: ${(invoice.finalTotal || 0).toFixed(2).padStart(24)}\n`;
+
+    if (invoice.riderChange !== undefined && invoice.riderChange !== null && invoice.riderChange > 0) {
+      receiptText += `الباقي مع الطيار: ${(invoice.riderChange || 0).toFixed(2).padStart(24)}\n`;
+    }
+
+    receiptText += "==========================================\n";
+    receiptText += "شكراً لتعاملكم معنا! نسعد بخدمتكم دائماً\n";
     receiptText += "\n\n\n\n\n"; // Extra space for tearing
 
     // 2. Save to a temporary file
     const tempFilePath = path.join(os.tmpdir(), `receipt_${invoice.invoiceNo}.txt`);
-    // Use 'ucs2' or 'utf8' depending on the printer driver. 
-    // Generic/Text Only usually likes CP864 or just plain ANSI for Arabic, 
-    // but Windows 'Out-Printer' handles the rendering.
     fs.writeFileSync(tempFilePath, receiptText, { encoding: "utf8" });
 
-    // 3. Print using PowerShell
+    // 3. Print using PowerShell with smart printer detection (prioritizing Xprinter 80c and thermal printers)
     const command = `powershell -Command "
-      $names = @('textonly', 'text only', 'Generic / Text Only');
-      $printer = $null;
-      foreach ($n in $names) {
-          $printer = Get-Printer -Name $n -ErrorAction SilentlyContinue;
-          if ($printer) { break; }
-      }
+      $printer = Get-Printer | Where-Object { 
+          $_.Name -like '*xprinter*' -or 
+          $_.Name -like '*xp-80*' -or 
+          $_.Name -like '*xp80*' -or 
+          $_.Name -like '*x printer*' -or 
+          $_.Name -like '*80c*' -or 
+          $_.Name -like '*80 c*' -or 
+          $_.Name -like '*xp 80*' -or
+          $_.Name -like '*pos-80*' -or
+          $_.Name -like '*pos80*' -or
+          $_.Name -like '*thermal*' -or
+          $_.Name -like '*receipt*' -or
+          $_.Name -like '*pos*'
+      } | Select-Object -First 1;
+
       if (!$printer) {
           $printer = Get-Printer | Where-Object { $_.Name -like '*text*' } | Select-Object -First 1;
       }
-      
+      if (!$printer) {
+          $printer = Get-Printer | Where-Object { $_.IsDefault -eq $true } | Select-Object -First 1;
+      }
+
       if ($printer) {
           [System.IO.File]::ReadAllText('${tempFilePath.replace(/\\/g, '/')}', [System.Text.Encoding]::UTF8) | Out-Printer -Name $printer.Name;
       } else {
@@ -65,7 +95,7 @@ export async function POST(req: Request) {
       }
     "`;
 
-    return new Promise((resolve) => {
+    return new Promise<NextResponse>((resolve) => {
       exec(command, (error, stdout, stderr) => {
         // Delete temp file
         try { fs.unlinkSync(tempFilePath); } catch (e) {}
