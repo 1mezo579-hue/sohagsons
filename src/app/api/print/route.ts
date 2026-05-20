@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     receiptText += `نوع الطلب: ${invoice.orderType === "delivery" ? "دليفري (توصيل)" : "صالة"}\n`;
 
     if (invoice.customer) {
-      receiptText += "------------------------------------------\n";
+      receiptText += "==========================================\n";
       receiptText += `العميل: ${invoice.customer.name}\n`;
       if (invoice.customer.phone) {
         receiptText += `الهاتف: ${invoice.customer.phone}\n`;
@@ -28,9 +28,9 @@ export async function POST(req: Request) {
       }
     }
 
-    receiptText += "------------------------------------------\n";
+    receiptText += "==========================================\n";
     receiptText += "الصنف                 الكمية   السعر  الإجمالي\n";
-    receiptText += "------------------------------------------\n";
+    receiptText += "==========================================\n";
 
     invoice.items.forEach((item: any) => {
       // Pad and align columns beautifully
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       receiptText += `${name} ${qty} ${price} ${total}\n`;
     });
 
-    receiptText += "------------------------------------------\n";
+    receiptText += "==========================================\n";
     receiptText += `المجموع الفرعي:   ${(invoice.total || 0).toFixed(2).padStart(24)}\n`;
     if (invoice.deliveryFee > 0) {
       receiptText += `رسوم التوصيل:     ${(invoice.deliveryFee || 0).toFixed(2).padStart(24)}\n`;
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     if (invoice.discount > 0) {
       receiptText += `الخصم:            ${(invoice.discount || 0).toFixed(2).padStart(24)}\n`;
     }
-    receiptText += "------------------------------------------\n";
+    receiptText += "==========================================\n";
     receiptText += `الإجمالي المطلوب: ${(invoice.finalTotal || 0).toFixed(2).padStart(24)}\n`;
 
     if (invoice.riderChange !== undefined && invoice.riderChange !== null && invoice.riderChange > 0) {
@@ -64,28 +64,29 @@ export async function POST(req: Request) {
     const tempFilePath = path.join(os.tmpdir(), `receipt_${invoice.invoiceNo}.txt`);
     fs.writeFileSync(tempFilePath, receiptText, { encoding: "utf8" });
 
-    // 3. Print using PowerShell with smart printer detection (prioritizing Xprinter 80c and thermal printers)
+    // 3. Print using PowerShell with smart printer detection (prioritizing default Windows printer)
     const command = `powershell -Command "
-      $printer = Get-Printer | Where-Object { 
-          $_.Name -like '*xprinter*' -or 
-          $_.Name -like '*xp-80*' -or 
-          $_.Name -like '*xp80*' -or 
-          $_.Name -like '*x printer*' -or 
-          $_.Name -like '*80c*' -or 
-          $_.Name -like '*80 c*' -or 
-          $_.Name -like '*xp 80*' -or
-          $_.Name -like '*pos-80*' -or
-          $_.Name -like '*pos80*' -or
-          $_.Name -like '*thermal*' -or
-          $_.Name -like '*receipt*' -or
-          $_.Name -like '*pos*'
-      } | Select-Object -First 1;
+      $printer = Get-Printer | Where-Object { $_.IsDefault -eq $true } | Select-Object -First 1;
+
+      if (!$printer) {
+          $printer = Get-Printer | Where-Object { 
+              $_.Name -like '*xprinter*' -or 
+              $_.Name -like '*xp-80*' -or 
+              $_.Name -like '*xp80*' -or 
+              $_.Name -like '*x printer*' -or 
+              $_.Name -like '*80c*' -or 
+              $_.Name -like '*80 c*' -or 
+              $_.Name -like '*xp 80*' -or
+              $_.Name -like '*pos-80*' -or
+              $_.Name -like '*pos80*' -or
+              $_.Name -like '*thermal*' -or
+              $_.Name -like '*receipt*' -or
+              $_.Name -like '*pos*'
+          } | Select-Object -First 1;
+      }
 
       if (!$printer) {
           $printer = Get-Printer | Where-Object { $_.Name -like '*text*' } | Select-Object -First 1;
-      }
-      if (!$printer) {
-          $printer = Get-Printer | Where-Object { $_.IsDefault -eq $true } | Select-Object -First 1;
       }
 
       if ($printer) {

@@ -228,7 +228,7 @@ export default function CashierPage() {
           ...editingProduct,
           name: newName.trim(),
           price: parseFloat(newPrice),
-          categoryId: editingProduct.category?.id || null, // Ensure ID is passed not object
+          categoryId: (editingProduct.category as any)?.id || null, // Ensure ID is passed not object
         }),
       });
       if (res.ok) {
@@ -292,7 +292,7 @@ export default function CashierPage() {
   const displayedProducts = products.slice(0, displayLimit);
   const hasMore = displayLimit < products.length;
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (shouldPrint: boolean = true) => {
     if (cart.items.length === 0) return toast.error("السلة فارغة!");
     if (cart.paymentType === "credit" && !selectedCustomer) {
       return toast.error("يجب اختيار اسم العميل لتسجيل الفاتورة كـ آجل");
@@ -330,11 +330,14 @@ export default function CashierPage() {
         
         setLastInvoice(invoice);
         setShowCheckout(false);
-        setShowReceipt(true);
+        if (shouldPrint) {
+          setShowReceipt(true);
+          // Direct Print
+          directPrint(invoice);
+        } else {
+          setShowReceipt(false);
+        }
         setSelectedCustomer(null);
-        
-        // Direct Print
-        directPrint(invoice);
         
         const soldItems = cart.items;
         setAllProducts(prev =>
@@ -997,20 +1000,45 @@ export default function CashierPage() {
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="space-y-3">
               <button
-                onClick={handleCheckout}
+                onClick={() => handleCheckout(true)}
                 disabled={isLoading}
-                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 rounded-xl font-bold text-white transition-colors shadow-lg flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 rounded-xl font-bold text-white transition-colors shadow-lg flex items-center justify-center gap-2 text-base"
               >
                 {isLoading ? <span className="animate-spin">⟳</span> : <Printer className="w-5 h-5" />}
                 {isLoading ? "جاري الحفظ..." : "تأكيد وطباعة"}
               </button>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleCheckout(false)}
+                  disabled={isLoading}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 rounded-xl font-bold text-white transition-colors shadow-md flex items-center justify-center gap-2 text-sm"
+                >
+                  {isLoading ? <span className="animate-spin">⟳</span> : <CreditCard className="w-4 h-4" />}
+                  تأكيد فقط
+                </button>
+                <button
+                  onClick={() => {
+                    cart.clearCart();
+                    setSelectedCustomer(null);
+                    setShowCheckout(false);
+                    toast.success("تم بدء فاتورة جديدة بنجاح!");
+                  }}
+                  disabled={isLoading}
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 disabled:bg-gray-300 rounded-xl font-bold text-white transition-colors shadow-md flex items-center justify-center gap-2 text-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  فاتورة جديدة
+                </button>
+              </div>
+
               <button
                 onClick={() => setShowCheckout(false)}
-                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium text-gray-700 transition-colors"
+                className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium text-gray-700 transition-colors text-xs"
               >
-                إلغاء
+                إلغاء التراجع
               </button>
             </div>
           </div>
