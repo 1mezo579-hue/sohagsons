@@ -18,6 +18,7 @@ export default function RootLayout({
         {children}
         <Toaster 
           position="top-left" 
+          containerClassName="no-print"
           toastOptions={{
             style: {
               direction: "rtl",

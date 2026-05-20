@@ -1048,7 +1048,7 @@ export default function CashierPage() {
       {/* Receipt */}
       {showReceipt && lastInvoice && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 max-h-[90vh] overflow-auto shadow-2xl">
+          <div id="printable-receipt" className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 max-h-[90vh] overflow-auto shadow-2xl print:shadow-none print:max-h-none print:w-[80mm] print:mx-auto print:p-0">
             <div className="text-center mb-4 border-b-2 border-dashed border-gray-200 pb-4">
               <h2 className="text-2xl font-black text-gray-900">ماركت أبناء سوهاج</h2>
               

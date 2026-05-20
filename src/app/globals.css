@@ -66,22 +66,27 @@
 
 /* Print styles */
 @media print {
-  .no-print {
-    display: none !important;
+  @page {
+    size: 80mm auto;
+    margin: 0;
   }
-  body {
-    background: white !important;
-    color: black !important;
+  body * {
+    visibility: hidden;
   }
-  .card {
-    background: white !important;
-    border: 1px solid #ccc !important;
+  #printable-receipt, #printable-receipt * {
+    visibility: visible;
+  }
+  #printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 4mm !important;
     box-shadow: none !important;
   }
-  .input {
-    background: white !important;
-    color: black !important;
-    border: 1px solid #ccc !important;
+  .no-print {
+    display: none !important;
   }
 }
 
