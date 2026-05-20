@@ -77,13 +77,14 @@
     visibility: visible;
   }
   #printable-receipt {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 80mm !important;
-    margin: 0 !important;
-    padding: 0 4mm !important;
+    position: relative !important;
+    width: 74mm !important;
+    margin: 0 auto !important;
+    padding: 2mm 4mm !important;
     box-shadow: none !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
   }
   .no-print {
     display: none !important;
