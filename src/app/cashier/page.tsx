@@ -1049,11 +1049,11 @@ export default function CashierPage() {
       {showReceipt && lastInvoice && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
           <div id="printable-receipt" className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 max-h-[90vh] overflow-auto shadow-2xl print:shadow-none print:max-h-none print:w-[80mm] print:mx-auto print:p-0">
-            <div className="text-center mb-4 border-b-2 border-dashed border-gray-200 pb-4">
-              <h2 className="text-2xl font-black text-gray-900">ماركت أبناء سوهاج</h2>
+            <div className="text-center mb-2 border-b border-dashed border-gray-300 pb-2">
+              <h2 className="text-xl font-black text-gray-900">ماركت أبناء سوهاج</h2>
               
-              <div className="flex flex-col items-center gap-1 my-3 text-[13px] font-bold text-gray-700">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col items-center gap-0 my-1 text-[12px] font-bold text-gray-700">
+                <div className="flex items-center gap-1">
                   <Phone className="w-3.5 h-3.5 text-gray-500" />
                   <span dir="ltr">035551771</span>
                   <span>-</span>
@@ -1067,9 +1067,9 @@ export default function CashierPage() {
                 </div>
               </div>
 
-              <p className="text-sm text-gray-500 mt-1">فاتورة مبيعات</p>
-              <p className="text-xs text-gray-400 font-mono">{lastInvoice.invoiceNo}</p>
-              <p className="text-xs text-gray-400 mb-2">
+              <p className="text-[11px] text-gray-500 mt-0.5">فاتورة مبيعات</p>
+              <p className="text-[10px] text-gray-400 font-mono">{lastInvoice.invoiceNo}</p>
+              <p className="text-[10px] text-gray-400 mb-1">
                 {new Date(lastInvoice.createdAt).toLocaleString("ar-EG")}
               </p>
               {lastInvoice.customer && (
@@ -1080,7 +1080,7 @@ export default function CashierPage() {
               )}
             </div>
 
-            <div className="space-y-2 mb-4 text-sm">
+            <div className="space-y-0.5 mb-2 text-[13px] font-medium leading-tight">
               {lastInvoice.items.map((item: any) => (
                 <div key={item.id} className="flex justify-between">
                   <span className="text-gray-700">{item.product.name} × {item.quantity}</span>
@@ -1089,8 +1089,8 @@ export default function CashierPage() {
               ))}
             </div>
 
-            <div className="border-t-2 border-dashed border-gray-200 pt-3 space-y-1 text-sm">
-              <div className="flex justify-between text-gray-600">
+            <div className="border-t border-dashed border-gray-300 pt-1.5 space-y-0.5 text-[13px]">
+              <div className="flex justify-between text-gray-700">
                 <span>المجموع:</span>
                 <span>{formatPrice(lastInvoice.total)}</span>
               </div>
@@ -1104,7 +1104,7 @@ export default function CashierPage() {
                 <span>الخصم:</span>
                 <span>{formatPrice(lastInvoice.discount)}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold text-gray-900 border-t border-gray-100 pt-2 mt-2">
+              <div className="flex justify-between text-[15px] font-bold text-gray-900 border-t border-gray-200 pt-1 mt-1">
                 <span>الإجمالي:</span>
                 <span>{formatPrice(lastInvoice.finalTotal)}</span>
               </div>
@@ -1114,7 +1114,7 @@ export default function CashierPage() {
               </div>
             </div>
 
-            <div className="mt-6 text-center text-xs text-gray-400 border-t border-gray-100 pt-4">
+            <div className="mt-2 text-center text-[10px] text-gray-500 border-t border-gray-200 pt-2 pb-1">
               شكراً لتعاملكم مع ماركت أبناء سوهاج
             </div>
 
