@@ -25,7 +25,13 @@ export async function GET() {
             quantity: true,
             price: true,
             total: true,
-            product: { select: { name: true } },
+            product: {
+              select: {
+                name: true,
+                costPrice: true,
+                category: { select: { name: true } },
+              },
+            },
           },
         },
       },
@@ -88,7 +94,13 @@ export async function POST(req: Request) {
             quantity: true,
             price: true,
             total: true,
-            product: { select: { name: true } },
+            product: {
+              select: {
+                name: true,
+                costPrice: true,
+                category: { select: { name: true } },
+              },
+            },
           },
         },
       },

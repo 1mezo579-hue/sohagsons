@@ -92,7 +92,7 @@ export default function ReportsPage() {
       const isReturn = inv.orderType === "return";
       const multiplier = isReturn ? -1 : 1;
       return sum + inv.items.reduce((itemSum, item) => {
-        return itemSum + (item.quantity * (item.product.costPrice || 0) * multiplier);
+        return itemSum + (item.quantity * (item.product?.costPrice || 0) * multiplier);
       }, 0);
     }, 0);
 
@@ -125,7 +125,7 @@ export default function ReportsPage() {
     const cats: Record<string, number> = {};
     filteredInvoices.forEach((inv) => {
       inv.items.forEach((item) => {
-        const cat = item.product.category?.name || "غير مصنف";
+        const cat = item.product?.category?.name || "غير مصنف";
         cats[cat] = (cats[cat] || 0) + item.total;
       });
     });
@@ -136,12 +136,14 @@ export default function ReportsPage() {
     const products: Record<string, { name: string; qty: number; revenue: number; profit: number }> = {};
     filteredInvoices.forEach((inv) => {
       inv.items.forEach((item) => {
-        if (!products[item.product.name]) {
-          products[item.product.name] = { name: item.product.name, qty: 0, revenue: 0, profit: 0 };
+        const prodName = item.product?.name || "منتج غير معروف";
+        const costPrice = item.product?.costPrice || 0;
+        if (!products[prodName]) {
+          products[prodName] = { name: prodName, qty: 0, revenue: 0, profit: 0 };
         }
-        products[item.product.name].qty += item.quantity;
-        products[item.product.name].revenue += item.total;
-        products[item.product.name].profit += item.total - (item.quantity * item.product.costPrice);
+        products[prodName].qty += item.quantity;
+        products[prodName].revenue += item.total;
+        products[prodName].profit += item.total - (item.quantity * costPrice);
       });
     });
     return Object.values(products).sort((a, b) => b.revenue - a.revenue).slice(0, 10);
@@ -647,11 +649,11 @@ export default function ReportsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {selectedInvoice.items.map((item) => {
-                    const profit = item.total - (item.quantity * (item.product.costPrice || 0));
+                    const profit = item.total - (item.quantity * (item.product?.costPrice || 0));
                     return (
                       <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900">{item.product.name}</td>
-                        <td className="py-3 px-4 text-slate-500 font-medium no-print">{item.product.category?.name || "-"}</td>
+                        <td className="py-3 px-4 font-bold text-slate-900">{item.product?.name || "منتج غير معروف"}</td>
+                        <td className="py-3 px-4 text-slate-500 font-medium no-print">{item.product?.category?.name || "-"}</td>
                         <td className="py-3 px-4 text-center font-black text-slate-700">{item.quantity}</td>
                         <td className="py-3 px-4 font-bold text-slate-600">{formatPrice(item.price)}</td>
                         <td className="py-3 px-4 font-black text-blue-600">{formatPrice(item.total)}</td>
