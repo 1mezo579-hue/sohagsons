@@ -5,115 +5,153 @@ import { createClient } from "@supabase/supabase-js";
 export async function POST() {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       return NextResponse.json(
-        { error: "بيانات الاتصال بـ Supabase غير مكتملة في ملف البيئة" },
+        {
+          error:
+            "بيانات الاتصال بـ Supabase غير مكتملة — تأكد من NEXT_PUBLIC_SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في ملف .env",
+        },
         { status: 500 }
       );
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 1. Fetch from Supabase
-    console.log("جاري سحب المجموعات من Supabase...");
+    // ── 1. Categories ──────────────────────────────────────────────
+    console.log("⬇️  سحب المجموعات من Supabase...");
     const { data: cloudCategories, error: catError } = await supabase
       .from("Category")
       .select("*");
 
-    if (catError) throw new Error(`خطأ في جلب المجموعات: ${catError.message}`);
+    if (catError) {
+      // Try lowercase table name (some Supabase setups)
+      const { data: catLower, error: catError2 } = await supabase
+        .from("category")
+        .select("*");
+      if (catError2)
+        throw new Error(`خطأ في جلب المجموعات: ${catError.message}`);
+      (cloudCategories as any) = catLower;
+    }
 
-    console.log("جاري سحب المنتجات من Supabase...");
-    const { data: cloudProducts, error: prodError } = await supabase
-      .from("Product")
-      .select("*");
-
-    if (prodError) throw new Error(`خطأ في جلب المنتجات: ${prodError.message}`);
-
-    console.log("جاري سحب العملاء من Supabase...");
-    const { data: cloudCustomers, error: custError } = await supabase
-      .from("Customer")
-      .select("*");
-
-    if (custError) throw new Error(`خطأ في جلب العملاء: ${custError.message}`);
-
-    // 2. Upsert Categories locally
     let catCount = 0;
     if (cloudCategories && cloudCategories.length > 0) {
       for (const cat of cloudCategories) {
+        // Upsert by name (unique) — avoids ID conflicts between Supabase & SQLite
         await prisma.category.upsert({
-          where: { id: cat.id },
+          where: { name: cat.name },
           update: { name: cat.name },
-          create: { id: cat.id, name: cat.name },
+          create: { name: cat.name },
         });
         catCount++;
       }
     }
 
-    // 3. Upsert Products locally
+    // ── 2. Products ────────────────────────────────────────────────
+    console.log("⬇️  سحب المنتجات من Supabase...");
+    const { data: rawProducts, error: prodError } = await supabase
+      .from("Product")
+      .select("*, Category(name)");
+
+    let cloudProducts = rawProducts;
+    if (prodError) {
+      const { data: prodLower, error: prodError2 } = await supabase
+        .from("product")
+        .select("*");
+      if (prodError2)
+        throw new Error(`خطأ في جلب المنتجات: ${prodError.message}`);
+      cloudProducts = prodLower;
+    }
+
     let prodCount = 0;
     if (cloudProducts && cloudProducts.length > 0) {
       for (const prod of cloudProducts) {
-        await prisma.product.upsert({
-          where: { id: prod.id },
-          update: {
-            name: prod.name,
-            barcode: prod.barcode,
-            categoryId: prod.categoryId,
-            priceType: prod.priceType,
-            price: prod.price,
-            costPrice: prod.costPrice,
-            stock: prod.stock,
-            minStock: prod.minStock,
-            unit: prod.unit,
-            expiryDate: prod.expiryDate,
-            synced: true, // Mark synced local
-          },
-          create: {
-            id: prod.id,
-            name: prod.name,
-            barcode: prod.barcode,
-            categoryId: prod.categoryId,
-            priceType: prod.priceType,
-            price: prod.price,
-            costPrice: prod.costPrice,
-            stock: prod.stock,
-            minStock: prod.minStock,
-            unit: prod.unit,
-            expiryDate: prod.expiryDate,
-            synced: true,
-          },
-        });
+        // Resolve the category by name locally
+        let localCategoryId: number | null = null;
+        const catName: string | null =
+          prod.Category?.name || prod.category_name || null;
+        if (catName) {
+          const localCat = await prisma.category.findFirst({
+            where: { name: catName },
+          });
+          if (localCat) localCategoryId = localCat.id;
+        }
+
+        const productData = {
+          name: prod.name,
+          barcode: prod.barcode ?? null,
+          categoryId: localCategoryId,
+          priceType: prod.priceType ?? prod.price_type ?? "unit",
+          price: prod.price ?? 0,
+          costPrice: prod.costPrice ?? prod.cost_price ?? 0,
+          stock: prod.stock ?? 0,
+          minStock: prod.minStock ?? prod.min_stock ?? 5,
+          unit: prod.unit ?? "piece",
+          expiryDate: prod.expiryDate ?? prod.expiry_date ?? null,
+          synced: true,
+        };
+
+        if (prod.barcode) {
+          // Upsert by unique barcode
+          await prisma.product.upsert({
+            where: { barcode: prod.barcode },
+            update: productData,
+            create: productData,
+          });
+        } else {
+          // No barcode — find by name
+          const existing = await prisma.product.findFirst({
+            where: { name: prod.name },
+          });
+          if (existing) {
+            await prisma.product.update({
+              where: { id: existing.id },
+              data: productData,
+            });
+          } else {
+            await prisma.product.create({ data: productData });
+          }
+        }
         prodCount++;
       }
     }
 
-    // 4. Upsert Customers locally
+    // ── 3. Customers ───────────────────────────────────────────────
+    console.log("⬇️  سحب العملاء من Supabase...");
+    const { data: rawCustomers, error: custError } = await supabase
+      .from("Customer")
+      .select("*");
+
+    let cloudCustomers = rawCustomers;
+    if (custError) {
+      const { data: custLower, error: custError2 } = await supabase
+        .from("customer")
+        .select("*");
+      if (custError2)
+        throw new Error(`خطأ في جلب العملاء: ${custError.message}`);
+      cloudCustomers = custLower;
+    }
+
     let custCount = 0;
     if (cloudCustomers && cloudCustomers.length > 0) {
       for (const cust of cloudCustomers) {
+        if (!cust.phone) continue; // phone is unique — skip if missing
+        const custData = {
+          name: cust.name ?? "عميل",
+          phone: cust.phone,
+          address: cust.address ?? null,
+          points: cust.points ?? 0,
+          totalSpent: cust.totalSpent ?? cust.total_spent ?? 0,
+          balance: cust.balance ?? 0,
+          notes: cust.notes ?? null,
+        };
         await prisma.customer.upsert({
-          where: { id: cust.id },
-          update: {
-            name: cust.name,
-            phone: cust.phone,
-            address: cust.address,
-            points: cust.points,
-            totalSpent: cust.totalSpent,
-            balance: cust.balance,
-            notes: cust.notes,
-          },
-          create: {
-            id: cust.id,
-            name: cust.name,
-            phone: cust.phone,
-            address: cust.address,
-            points: cust.points,
-            totalSpent: cust.totalSpent,
-            balance: cust.balance,
-            notes: cust.notes,
-          },
+          where: { phone: cust.phone },
+          update: custData,
+          create: custData,
         });
         custCount++;
       }
@@ -121,13 +159,13 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: "تم تحديث البيانات المحلية بالكامل من السيرفر الأونلاين بنجاح!",
+      message: "✅ تم تحديث قاعدة البيانات المحلية من السيرفر بنجاح!",
       categoriesPulled: catCount,
       productsPulled: prodCount,
       customersPulled: custCount,
     });
   } catch (error: any) {
-    console.error("خطأ المزامنة:", error);
+    console.error("❌ خطأ المزامنة:", error);
     return NextResponse.json(
       { error: error.message || "حدث خطأ غير متوقع أثناء المزامنة" },
       { status: 500 }
