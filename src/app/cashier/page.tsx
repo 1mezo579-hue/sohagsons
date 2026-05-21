@@ -1018,8 +1018,8 @@ export default function CashierPage() {
                   
                   <div className="pt-2 border-t border-amber-200/50 space-y-2 text-xs font-semibold text-slate-600">
                     <div className="flex justify-between">
-                      <span>ثمن الأوردر الصافي (بدون دليفري):</span>
-                      <span className="font-bold text-slate-800">{formatPrice(cart.getTotal() - cart.discount)}</span>
+                      <span>إجمالي الفاتورة (شامل الدليفري):</span>
+                      <span className="font-bold text-slate-800">{formatPrice(cart.getFinalTotal())}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>الباقي مع الطيار (+):</span>
@@ -1033,7 +1033,7 @@ export default function CashierPage() {
                     <div className="mt-3 p-2.5 bg-amber-100/80 border border-amber-200 rounded-xl flex items-center justify-between text-sm">
                       <span className="font-black text-amber-900">المطلوب استلامه من الطيار:</span>
                       <span className="font-black text-base text-amber-900">
-                        {formatPrice(Math.max(0, (cart.getTotal() - cart.discount + pilotChange) - cart.getDeliveryFee()))}
+                        {formatPrice(Math.max(0, (cart.getFinalTotal() + pilotChange) - cart.getDeliveryFee()))}
                       </span>
                     </div>
                   </div>
