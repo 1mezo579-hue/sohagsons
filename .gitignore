@@ -36,3 +36,4 @@ next-env.d.ts
 # portable and backup archives
 SohagPOS_Portable/
 SohagPOS_FlashDrive_Version.zip
+.vercel

@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import {
   Search, Trash2, Minus, Plus, Printer, ShoppingCart,
   ArrowRight, CreditCard, Banknote, Percent, ScanLine,
-  X, Package, Weight, Clock, Phone, Edit2
+  X, Package, Weight, Clock, Phone, Edit2, Truck
 } from "lucide-react";
 
 interface Product {
@@ -29,6 +29,7 @@ interface Product {
 
 export default function CashierPage() {
   const { user, isChecked } = useRequireAuth();
+  const cart = useCartStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -41,7 +42,9 @@ export default function CashierPage() {
   const [displayLimit, setDisplayLimit] = useState(80);
   const [isLoading, setIsLoading] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [pilotChange, setPilotChange] = useState<number>(0);
+  const selectedCustomer = cart.selectedCustomer;
+  const setSelectedCustomer = cart.setSelectedCustomer;
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState({ name: "", barcode: "", price: "" });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -54,7 +57,6 @@ export default function CashierPage() {
 
   const barcodeRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const cart = useCartStore();
 
   useEffect(() => {
     fetchProducts();
@@ -338,6 +340,7 @@ export default function CashierPage() {
           setShowReceipt(false);
         }
         setSelectedCustomer(null);
+        setPilotChange(0);
         
         const soldItems = cart.items;
         setAllProducts(prev =>
@@ -510,6 +513,51 @@ export default function CashierPage() {
           </div>
         </div>
       </header>
+
+      {/* Tabs Bar */}
+      <div className="bg-white border-b border-slate-200 px-6 py-2.5 flex items-center justify-between no-print shadow-sm overflow-x-auto gap-2 scrollbar-none z-10 shrink-0">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+          {cart.carts.map((c) => {
+            const isActive = cart.activeCartId === c.id;
+            return (
+              <div
+                key={c.id}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all cursor-pointer select-none font-bold text-sm shrink-0 ${
+                  isActive
+                    ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
+                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:border-slate-300"
+                }`}
+                onClick={() => cart.switchCart(c.id)}
+              >
+                <span>{c.name}</span>
+                {cart.carts.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      cart.removeCart(c.id);
+                    }}
+                    className={`p-0.5 rounded-md hover:bg-rose-100 hover:text-rose-600 transition-colors ${
+                      isActive ? "text-blue-400" : "text-slate-400"
+                    }`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <button
+          onClick={() => {
+            cart.addCart();
+            toast.success("تم فتح حساب زبون جديد!");
+          }}
+          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md shrink-0 text-sm hover:-translate-y-0.5 active:translate-y-0"
+        >
+          <Plus className="w-4 h-4" />
+          زبون جديد
+        </button>
+      </div>
 
       <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 p-4 md:p-6 lg:overflow-hidden">
         {/* Left: Products */}
@@ -943,6 +991,56 @@ export default function CashierPage() {
               </div>
             </div>
 
+            {/* Delivery Pilot Calculator */}
+            {cart.orderType === "delivery" && (
+              <div className="mb-5 p-4 bg-amber-50/70 border border-amber-200 rounded-2xl">
+                <h4 className="font-bold text-sm text-amber-800 mb-3 flex items-center gap-1.5">
+                  <Truck className="w-4 h-4" />
+                  حساب وتسليم الطيار
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-amber-700 mb-1.5">
+                      الباقي الممنوح للطيار (الفكة اللي خارجة معاه):
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        value={pilotChange}
+                        onChange={(e) => setPilotChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                        className="w-full bg-white border border-amber-200 rounded-xl pl-8 pr-4 py-2 outline-none focus:ring-2 focus:ring-amber-500 font-bold text-slate-700 text-sm"
+                        placeholder="0"
+                      />
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-amber-500">جنية</span>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2 border-t border-amber-200/50 space-y-2 text-xs font-semibold text-slate-600">
+                    <div className="flex justify-between">
+                      <span>ثمن الأوردر الصافي (بدون دليفري):</span>
+                      <span className="font-bold text-slate-800">{formatPrice(cart.getTotal() - cart.discount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>الباقي مع الطيار (+):</span>
+                      <span className="font-bold text-slate-800">+{formatPrice(pilotChange)}</span>
+                    </div>
+                    <div className="flex justify-between text-rose-600">
+                      <span>عمولة الطيار / الدليفري (-):</span>
+                      <span className="font-bold">-{formatPrice(cart.getDeliveryFee())}</span>
+                    </div>
+                    
+                    <div className="mt-3 p-2.5 bg-amber-100/80 border border-amber-200 rounded-xl flex items-center justify-between text-sm">
+                      <span className="font-black text-amber-900">المطلوب استلامه من الطيار:</span>
+                      <span className="font-black text-base text-amber-900">
+                        {formatPrice(Math.max(0, (cart.getTotal() - cart.discount + pilotChange) - cart.getDeliveryFee()))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="mb-4">
               <label className="label block text-sm font-bold text-slate-700 mb-2">تسجيل الفاتورة باسم عميل (للنقاط والدليفري)</label>
               <select 
@@ -1023,6 +1121,7 @@ export default function CashierPage() {
                   onClick={() => {
                     cart.clearCart();
                     setSelectedCustomer(null);
+                    setPilotChange(0);
                     setShowCheckout(false);
                     toast.success("تم بدء فاتورة جديدة بنجاح!");
                   }}

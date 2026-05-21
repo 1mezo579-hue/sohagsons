@@ -82,7 +82,6 @@ export async function POST(req: Request) {
             reason: "return",
             notes: `مرتجع فاتورة #${invoiceNo}`,
           })),
-          skipDuplicates: true,
         });
 
         // Customer balance update if applicable (deduct from balance or spent)

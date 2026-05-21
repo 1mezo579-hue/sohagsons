@@ -115,7 +115,6 @@ export async function POST(req: Request) {
             reason: "sale",
             notes: `فاتورة #${invoiceNo}`,
           })),
-          skipDuplicates: true,
         });
 
         // Customer update (if applicable)

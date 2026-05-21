@@ -272,7 +272,7 @@ async function main() {
     });
     console.log(`Seeding Category: ${cData.name}`);
 
-    for (const pData of cData.products) {
+    for (const pData of cData.products as { name: string; price: number; costPrice?: number; barcode?: string; priceType?: string; unit?: string }[]) {
       const exists = await prisma.product.findFirst({ where: { name: pData.name } });
       if (exists) {
         await prisma.product.update({

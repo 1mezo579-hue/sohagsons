@@ -7,7 +7,7 @@ import { formatPrice, formatDate } from "@/lib/utils";
 import {
   ArrowRight, TrendingUp, TrendingDown, Calendar,
   DollarSign, Package, ShoppingCart, Users, Clock,
-  BarChart3, PieChart, Activity, Layers, Eye, X, Printer, RotateCcw
+  BarChart3, PieChart, Activity, Layers, Eye, X, Printer, RotateCcw, Phone
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,

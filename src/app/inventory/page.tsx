@@ -79,7 +79,7 @@ export default function InventoryPage() {
       setEditingProduct(null);
       setProductForm({
         name: "", barcode, categoryId: "", priceType: "unit",
-        price: "", costPrice: "", stock: "", minStock: "5", unit: "piece",
+        price: "", costPrice: "", stock: "", minStock: "5", unit: "piece", expiryDate: "",
       });
       setShowProductForm(true);
       // Trigger Open Food Facts lookup

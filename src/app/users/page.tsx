@@ -69,6 +69,56 @@ export default function UsersPage() {
     role: "cashier" as "admin" | "cashier" | "manager",
   });
 
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isPackaging, setIsPackaging] = useState(false);
+
+  const handlePullSync = async () => {
+    setIsSyncing(true);
+    const toastId = toast.loading("جاري بدء المزامنة وتنزيل البيانات من السيرفر الأونلاين...");
+    try {
+      const res = await fetch("/api/sync/pull", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(
+          `تم بنجاح! تم مزامنة وتحديث ${data.productsPulled} منتج و ${data.categoriesPulled} مجموعة.`,
+          { id: toastId, duration: 5000 }
+        );
+      } else {
+        const err = await res.json();
+        toast.error(`فشلت المزامنة: ${err.error || "خطأ غير معروف"}`, { id: toastId });
+      }
+    } catch {
+      toast.error("فشل الاتصال بالخادم، يرجى التحقق من توفر الإنترنت والاتصال بالشبكة.", { id: toastId });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDownloadPackage = async () => {
+    setIsPackaging(true);
+    const toastId = toast.loading("جاري إعداد وتحزيم النظام كاملاً مع قاعدة بياناتك الحالية...");
+    try {
+      const res = await fetch("/api/sync/package");
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "SohagPOS_Backup_Package.zip";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast.success("تم تجهيز الحزمة المضغوطة بنجاح، جاري تحميل الملف الآن!", { id: toastId });
+      } else {
+        toast.error("فشل في إعداد وتجميع الملفات حالياً، يرجى المحاولة مرة أخرى.", { id: toastId });
+      }
+    } catch {
+      toast.error("حدث خطأ غير متوقع أثناء إرسال طلب التحميل.", { id: toastId });
+    } finally {
+      setIsPackaging(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -200,6 +250,85 @@ export default function UsersPage() {
           <StatCard title="مدراء النظام" value={users.filter(u => u.role === "admin").length.toString()} icon={Crown} color="text-amber-600" bg="bg-amber-50" />
           <StatCard title="مدراء الفروع" value={users.filter(u => u.role === "manager").length.toString()} icon={UserCog} color="text-purple-600" bg="bg-purple-50" />
           <StatCard title="أطقم الكاشير" value={users.filter(u => u.role === "cashier").length.toString()} icon={User} color="text-emerald-600" bg="bg-emerald-50" />
+        </div>
+
+        {/* Database & Cloud Sync Settings */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
+              <Shield className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-slate-900">إدارة قاعدة البيانات والمزامنة الفورية</h2>
+              <p className="text-xs font-bold text-slate-400 mt-0.5">تحميل الأصناف الناقصة من السحابة وتصدير حزم تشغيل النظام</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Sync Cloud Data Button */}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col justify-between h-full group hover:border-blue-200 hover:bg-blue-50/10 transition-all">
+              <div>
+                <h3 className="font-bold text-slate-900 mb-1.5 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+                  مزامنة وتحميل المنتجات من السيرفر الأونلاين
+                </h3>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                  يقوم هذا الأمر بالاتصال بسيرفر Vercel الأونلاين وجلب كافة الأصناف، المجموعات، والعملاء الناقصين أو المحدثين على قاعدة البيانات السحابية وحفظهم فورياً في قاعدة البيانات المحلية الحالية بجهازك.
+                </p>
+              </div>
+              <div className="mt-5">
+                <button
+                  onClick={handlePullSync}
+                  disabled={isSyncing}
+                  className="w-full md:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-blue-500/10 hover:shadow-lg flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  {isSyncing ? (
+                    <>
+                      <span className="animate-spin text-white">⟳</span>
+                      جاري سحب وتحديث البيانات...
+                    </>
+                  ) : (
+                    <>
+                      <span>⟲</span>
+                      بدء المزامنة وتنزيل البيانات أونلاين
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Download Backup Package Button */}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col justify-between h-full group hover:border-emerald-200 hover:bg-emerald-50/10 transition-all">
+              <div>
+                <h3 className="font-bold text-slate-900 mb-1.5 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  تحميل الحزمة الكاملة للنظام (ملف ZIP)
+                </h3>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                  يقوم بتجميع قاعدة بياناتك المحلية الحالية (بعد تحديثها) وملف التشغيل الصامت للنظام وملفات الطباعة في الخلفية كملف واحد مضغوط. يمكنك نقله في فلاشة وتشغيله فورياً على أي جهاز آخر.
+                </p>
+              </div>
+              <div className="mt-5">
+                <button
+                  onClick={handleDownloadPackage}
+                  disabled={isPackaging}
+                  className="w-full md:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-emerald-500/10 hover:shadow-lg flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  {isPackaging ? (
+                    <>
+                      <span className="animate-spin text-white">⟳</span>
+                      جاري إعداد الحزمة المضغوطة...
+                    </>
+                  ) : (
+                    <>
+                      <span>📥</span>
+                      تحميل الحزمة الكاملة للتشغيل الصامت
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Users Grid */}

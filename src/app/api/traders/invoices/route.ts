@@ -121,7 +121,6 @@ export async function POST(req: Request) {
                 reason: "purchase",
                 notes: `فاتورة تاجر #${invoice.invoiceNo}`,
               })),
-              skipDuplicates: true,
             })
           );
         }
