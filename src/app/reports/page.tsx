@@ -568,7 +568,7 @@ export default function ReportsPage() {
                 <h3 className="text-lg font-bold text-slate-900 mb-6">الإيراد والربح لكل فاتورة</h3>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={filteredInvoices.slice(0, 15).map((inv, i) => {
-                    const cost = inv.items.reduce((s, item) => s + item.quantity * item.product.costPrice, 0);
+                    const cost = inv.items.reduce((s, item) => s + item.quantity * (item.product?.costPrice || 0), 0);
                     return {
                       name: `فاتورة ${i + 1}`,
                       profit: inv.finalTotal - cost,
