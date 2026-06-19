@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { formatPrice, formatDate } from "@/lib/utils";
+import { formatPrice, formatDate, toLocalDateKey } from "@/lib/utils";
+import toast from "react-hot-toast";
 import { openReceiptPrintWindow, toReceiptInvoice } from "@/lib/receiptPrint";
 import {
   ArrowRight, TrendingUp, TrendingDown, Calendar,
@@ -47,6 +48,7 @@ export default function ReportsPage() {
   const [activeView, setActiveView] = useState<"overview" | "invoices" | "products" | "analytics">("overview");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInvoices();
@@ -54,13 +56,16 @@ export default function ReportsPage() {
 
   const fetchInvoices = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
-      const res = await fetch("/api/invoices");
+      const res = await fetch("/api/invoices", { cache: "no-store" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "فشل تحميل الفواتير");
       setInvoices(Array.isArray(data) ? data : []);
     } catch (e: any) {
       setInvoices([]);
+      setFetchError(e.message || "فشل تحميل الفواتير");
+      toast.error(e.message || "فشل تحميل بيانات التقارير");
       console.error("Reports fetch error:", e.message);
     } finally {
       setLoading(false);
@@ -69,18 +74,18 @@ export default function ReportsPage() {
 
   const filteredInvoices = useMemo(() => {
     const now = new Date();
-    const today = now.toISOString().split("T")[0];
+    const today = toLocalDateKey(now);
 
     return invoices.filter((inv) => {
-      const date = new Date(inv.createdAt).toISOString().split("T")[0];
+      const date = toLocalDateKey(inv.createdAt);
 
       if (dateRange === "today") return date === today;
       if (dateRange === "week") {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+        const weekAgo = toLocalDateKey(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000));
         return date >= weekAgo;
       }
       if (dateRange === "month") {
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+        const monthAgo = toLocalDateKey(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000));
         return date >= monthAgo;
       }
       return date >= customFrom && date <= customTo;
@@ -95,12 +100,12 @@ export default function ReportsPage() {
     const totalDiscount = salesInvoices.reduce((s, i) => s + i.discount, 0);
     const totalInvoices = salesInvoices.length;
     const avgInvoice = totalInvoices > 0 ? salesInvoices.reduce((s, i) => s + i.finalTotal, 0) / totalInvoices : 0;
-    const totalItems = salesInvoices.reduce((s, i) => s + i.items.length, 0);
+    const totalItems = salesInvoices.reduce((s, i) => s + (i.items?.length || 0), 0);
 
     const totalCost = filteredInvoices.reduce((sum, inv) => {
       const isReturn = inv.orderType === "return";
       const multiplier = isReturn ? -1 : 1;
-      return sum + inv.items.reduce((itemSum, item) => {
+      return sum + (inv.items || []).reduce((itemSum, item) => {
         return itemSum + (item.quantity * (item.product?.costPrice || 0) * multiplier);
       }, 0);
     }, 0);
@@ -133,7 +138,7 @@ export default function ReportsPage() {
   const categoryData = useMemo(() => {
     const cats: Record<string, number> = {};
     filteredInvoices.forEach((inv) => {
-      inv.items.forEach((item) => {
+      (inv.items || []).forEach((item) => {
         const cat = item.product?.category?.name || "غير مصنف";
         cats[cat] = (cats[cat] || 0) + item.total;
       });
@@ -144,7 +149,7 @@ export default function ReportsPage() {
   const topProducts = useMemo(() => {
     const products: Record<string, { name: string; qty: number; revenue: number; profit: number }> = {};
     filteredInvoices.forEach((inv) => {
-      inv.items.forEach((item) => {
+      (inv.items || []).forEach((item) => {
         const prodName = item.product?.name || "منتج غير معروف";
         const costPrice = item.product?.costPrice || 0;
         if (!products[prodName]) {
@@ -259,6 +264,14 @@ export default function ReportsPage() {
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : fetchError ? (
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-10 text-center">
+            <p className="text-rose-700 font-bold text-lg mb-2">تعذّر تحميل بيانات التقارير</p>
+            <p className="text-rose-500 text-sm mb-6">{fetchError}</p>
+            <button onClick={fetchInvoices} className="px-6 py-3 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700">
+              إعادة المحاولة
+            </button>
           </div>
         ) : (
         <>
@@ -595,7 +608,7 @@ export default function ReportsPage() {
                 <h3 className="text-lg font-bold text-slate-900 mb-6">الإيراد والربح لكل فاتورة</h3>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={filteredInvoices.slice(0, 15).map((inv, i) => {
-                    const cost = inv.items.reduce((s, item) => s + item.quantity * (item.product?.costPrice || 0), 0);
+                    const cost = (inv.items || []).reduce((s, item) => s + item.quantity * (item.product?.costPrice || 0), 0);
                     return {
                       name: `فاتورة ${i + 1}`,
                       profit: inv.finalTotal - cost,
@@ -680,7 +693,7 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {selectedInvoice.items.map((item) => {
+                  {(selectedInvoice.items || []).map((item) => {
                     const profit = item.total - (item.quantity * (item.product?.costPrice || 0));
                     return (
                       <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">

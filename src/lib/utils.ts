@@ -28,3 +28,12 @@ export function generateInvoiceNo(prefix: string = "INV"): string {
   const timestamp = now.getTime().toString(36).toUpperCase();
   return `${prefix}-${timestamp}`;
 }
+
+/** Local calendar date YYYY-MM-DD (avoids UTC timezone shift in reports) */
+export function toLocalDateKey(d: Date | string): string {
+  const date = new Date(d);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
