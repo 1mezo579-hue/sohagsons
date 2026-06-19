@@ -52,3 +52,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "فشل في إضافة التاجر" }, { status: 500 });
   }
 }
+
+// ─── PATCH record payment to trader ──────────────────────────────────────────
+export async function PATCH(req: Request) {
+  try {
+    const { id, payment } = await req.json();
+
+    if (!id || !payment || Number(payment) <= 0) {
+      return NextResponse.json({ error: "معرّف التاجر والمبلغ مطلوبان" }, { status: 400 });
+    }
+
+    const trader = await prisma.trader.update({
+      where: { id: Number(id) },
+      data: { balance: { decrement: Number(payment) } },
+      select: { id: true, name: true, phone: true, company: true, balance: true },
+    });
+
+    return NextResponse.json(trader);
+  } catch (e: any) {
+    if (e.code === "P2025") {
+      return NextResponse.json({ error: "التاجر غير موجود" }, { status: 404 });
+    }
+    console.error("PATCH trader payment error:", e.message);
+    return NextResponse.json({ error: "فشل تسجيل الدفعة" }, { status: 500 });
+  }
+}

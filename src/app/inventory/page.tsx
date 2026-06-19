@@ -164,32 +164,17 @@ export default function InventoryPage() {
   };
 
   const handleDeleteProduct = async (id: number) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المنتج؟")) return;
+    if (!confirm("هل أنت متأكد من حذف هذا المنتج؟\n\nملاحظة: لا يمكن حذف منتج مرتبط بفواتير سابقة.")) return;
     try {
       const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
-      if (res.ok) { toast.success("تم حذف المنتج"); fetchData(); }
-    } catch { toast.error("فشل الحذف"); }
-  };
-
-  const handleDeleteAll = async () => {
-    const code = Math.floor(1000 + Math.random() * 9000);
-    const input = prompt(`تحذير خطير: سيتم مسح جميع المنتجات والحركات المخزنية للأبد! \n\nلتأكيد المسح، يرجى كتابة الرقم التالي: ${code}`);
-    if (input !== code.toString()) {
-      if (input !== null) toast.error("الرقم غير صحيح، تم إلغاء المسح");
-      return;
-    }
-
-    try {
-      const toastId = toast.loading("جاري مسح جميع البيانات...");
-      const res = await fetch(`/api/products/delete-all`, { method: "DELETE" });
+      const data = await res.json();
       if (res.ok) {
-        toast.success("تم تصفير المخزن ومسح جميع المنتجات بنجاح", { id: toastId });
+        toast.success("تم حذف المنتج");
         fetchData();
       } else {
-        const err = await res.json();
-        toast.error(err.error || "فشل المسح", { id: toastId });
+        toast.error(data.error || "فشل الحذف");
       }
-    } catch { toast.error("فشل الاتصال بالسيرفر"); }
+    } catch { toast.error("فشل الحذف"); }
   };
 
   const lookupBarcode = async (barcode: string) => {

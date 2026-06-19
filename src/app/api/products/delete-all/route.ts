@@ -4,15 +4,9 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export async function DELETE() {
-  try {
-    // Delete dependent records first
-    await prisma.stockLog.deleteMany({});
-    await prisma.invoiceItem.deleteMany({});
-    await prisma.product.deleteMany({});
-    
-    return NextResponse.json({ message: "تم مسح جميع الأصناف بنجاح" });
-  } catch (error) {
-    console.error("Error deleting all products:", error);
-    return NextResponse.json({ error: "فشل في مسح الأصناف، قد تكون مرتبطة بفواتير موجودة" }, { status: 500 });
-  }
+  // Disabled: mass delete would destroy invoice history and stock logs
+  return NextResponse.json(
+    { error: "تم تعطيل مسح جميع المنتجات لحماية بيانات الفواتير والمخزون" },
+    { status: 403 }
+  );
 }

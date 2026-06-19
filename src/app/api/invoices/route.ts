@@ -36,7 +36,7 @@ export async function GET() {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 200, // Limit to last 200 invoices for speed
+      take: 200,
     });
     return NextResponse.json(invoices);
   } catch (e: any) {

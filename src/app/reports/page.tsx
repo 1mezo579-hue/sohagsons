@@ -30,7 +30,7 @@ interface Invoice {
     quantity: number;
     price: number;
     total: number;
-    product: { name: string; costPrice: number; category: { name: string } };
+    product: { name: string; costPrice: number; category?: { name: string } | null } | null;
   }[];
   user: { name: string };
 }
@@ -45,17 +45,25 @@ export default function ReportsPage() {
   const [customTo, setCustomTo] = useState(new Date().toISOString().split("T")[0]);
   const [activeView, setActiveView] = useState<"overview" | "invoices" | "products" | "analytics">("overview");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchInvoices();
   }, []);
 
   const fetchInvoices = async () => {
+    setLoading(true);
     try {
       const res = await fetch("/api/invoices");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل تحميل الفواتير");
       setInvoices(Array.isArray(data) ? data : []);
-    } catch {}
+    } catch (e: any) {
+      setInvoices([]);
+      console.error("Reports fetch error:", e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredInvoices = useMemo(() => {
@@ -150,9 +158,9 @@ export default function ReportsPage() {
   }, [filteredInvoices]);
 
   const paymentData = [
-    { name: "كاش", value: stats.cashSales, color: "#10b981" },
-    { name: "فيزا", value: stats.cardSales, color: "#3b82f6" },
-  ];
+    { name: "كاش", value: Math.max(0, stats.cashSales), color: "#10b981" },
+    { name: "فيزا", value: Math.max(0, stats.cardSales), color: "#3b82f6" },
+  ].filter((p) => p.value > 0);
 
   const dateLabel = {
     today: "مبيعات اليوم",
@@ -212,6 +220,12 @@ export default function ReportsPage() {
           </div>
           
           <button
+            onClick={fetchInvoices}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors no-print"
+          >
+            تحديث
+          </button>
+          <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors shadow-lg shadow-slate-800/20 no-print"
           >
@@ -241,6 +255,12 @@ export default function ReportsPage() {
       )}
 
       <div className={`p-4 md:p-6 max-w-7xl mx-auto space-y-8 animate-fade-in ${selectedInvoice ? 'no-print' : ''}`}>
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+        <>
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
           <KpiCard title="إجمالي المبيعات" value={formatPrice(stats.totalSales)} icon={DollarSign} color="text-blue-600" bg="bg-blue-50" sub={stats.returnsCount > 0 ? "صافي المبيعات" : undefined} />
@@ -320,6 +340,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="h-[220px]">
+                  {paymentData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <RePieChart>
                       <Pie
@@ -342,9 +363,12 @@ export default function ReportsPage() {
                       />
                     </RePieChart>
                   </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm">لا توجد مبيعات في هذه الفترة</div>
+                  )}
                 </div>
                 <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-slate-100">
-                  {paymentData.map((item) => (
+                  {paymentData.length > 0 ? paymentData.map((item) => (
                     <div key={item.name} className="flex flex-col items-center gap-1">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full shadow-sm" style={{ background: item.color }}></div>
@@ -352,7 +376,9 @@ export default function ReportsPage() {
                       </div>
                       <span className="text-lg font-black text-slate-900">{formatPrice(item.value)}</span>
                     </div>
-                  ))}
+                  )) : (
+                    <span className="text-sm text-slate-400 font-bold">—</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -586,6 +612,8 @@ export default function ReportsPage() {
               </div>
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
 

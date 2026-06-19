@@ -58,6 +58,19 @@ export async function DELETE(
     const id = Number(params.id);
     if (!id) return NextResponse.json({ error: "معرّف المنتج غير صالح" }, { status: 400 });
 
+    const [invoiceItems, traderItems] = await Promise.all([
+      prisma.invoiceItem.count({ where: { productId: id } }),
+      prisma.traderInvoiceItem.count({ where: { productId: id } }),
+    ]);
+
+    if (invoiceItems > 0 || traderItems > 0) {
+      return NextResponse.json(
+        { error: "لا يمكن حذف المنتج لوجود فواتير مرتبطة به. يمكنك تعديل المخزون إلى صفر بدلاً من الحذف." },
+        { status: 409 }
+      );
+    }
+
+    await prisma.stockLog.deleteMany({ where: { productId: id } });
     await prisma.product.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e: any) {

@@ -69,10 +69,13 @@ export default function CustomersPage() {
     if (!confirm("هل أنت متأكد من حذف هذا العميل؟")) return;
     try {
       const res = await fetch(`/api/customers/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
       toast.success("تم الحذف");
       fetchCustomers();
-    } catch { toast.error("فشل الحذف"); }
+    } catch (e: any) {
+      toast.error(e.message || "فشل الحذف");
+    }
   };
 
   const handlePay = async () => {

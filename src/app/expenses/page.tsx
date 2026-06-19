@@ -78,7 +78,13 @@ export default function ExpensesPage() {
     } catch { toast.error("فشل الحذف"); }
   };
 
-  if (!isChecked) return null;
+  if (!isChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const filtered = expenses.filter(e => 
     e.category.includes(searchQuery) || (e.description && e.description.includes(searchQuery))

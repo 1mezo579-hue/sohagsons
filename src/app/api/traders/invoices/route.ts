@@ -5,9 +5,13 @@ import { generateInvoiceNo } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 // ─── GET all trader invoices ─────────────────────────────────────────────────
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const traderId = searchParams.get("traderId");
+
     const invoices = await prisma.traderInvoice.findMany({
+      where: traderId ? { traderId: Number(traderId) } : undefined,
       select: {
         id: true,
         invoiceNo: true,
@@ -30,7 +34,7 @@ export async function GET() {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 100,
+      take: traderId ? 50 : 100,
     });
     return NextResponse.json(invoices);
   } catch (e: any) {
@@ -45,90 +49,84 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { traderId, total, paid, notes, items } = body;
 
-    // Validation
-    if (!traderId || !total || !items?.length) {
+    if (!traderId || total === undefined || total === null) {
       return NextResponse.json({ error: "بيانات الفاتورة غير مكتملة" }, { status: 400 });
     }
 
     const totalNum = Number(total);
     const paidNum = Number(paid) || 0;
+
+    if (totalNum <= 0) {
+      return NextResponse.json({ error: "إجمالي الفاتورة يجب أن يكون أكبر من صفر" }, { status: 400 });
+    }
+    if (paidNum > totalNum) {
+      return NextResponse.json({ error: "المبلغ المدفوع لا يمكن أن يتجاوز إجمالي الفاتورة" }, { status: 400 });
+    }
+
     const remaining = Math.max(0, totalNum - paidNum);
     const status = remaining <= 0 ? "paid" : paidNum > 0 ? "partial" : "pending";
+    const invoiceItems = Array.isArray(items) ? items : [];
+    const invoiceNo = generateInvoiceNo("TRD-");
 
-    // ── Step 1: Create invoice (fast, non-blocking for user) ──
-    const invoice = await prisma.traderInvoice.create({
-      data: {
-        invoiceNo: generateInvoiceNo("TRD-"),
-        traderId: Number(traderId),
-        total: totalNum,
-        paid: paidNum,
-        remaining,
-        status,
-        notes: notes || null,
-        items: {
-          create: items.map((item: any) => ({
-            productId: item.productId ? Number(item.productId) : null,
-            description: item.description || item.name || "",
-            quantity: Number(item.quantity),
-            price: Number(item.price),
-            total: Number(item.total),
-          })),
+    const invoice = await prisma.$transaction(async (tx) => {
+      const created = await tx.traderInvoice.create({
+        data: {
+          invoiceNo,
+          traderId: Number(traderId),
+          total: totalNum,
+          paid: paidNum,
+          remaining,
+          status,
+          notes: notes || null,
+          items: {
+            create: invoiceItems.map((item: any) => ({
+              productId: item.productId ? Number(item.productId) : null,
+              description: item.description || item.name || "بند",
+              quantity: Number(item.quantity) || 0,
+              price: Number(item.price) || 0,
+              total: Number(item.total) || 0,
+            })),
+          },
         },
-      },
-      select: {
-        id: true,
-        invoiceNo: true,
-        total: true,
-        paid: true,
-        remaining: true,
-        status: true,
-        createdAt: true,
-        trader: { select: { name: true } },
-        items: { select: { description: true, quantity: true, price: true, total: true } },
-      },
-    });
+        select: {
+          id: true,
+          invoiceNo: true,
+          total: true,
+          paid: true,
+          remaining: true,
+          status: true,
+          createdAt: true,
+          trader: { select: { name: true } },
+          items: { select: { description: true, quantity: true, price: true, total: true } },
+        },
+      });
 
-    // ── Step 2: Background updates (stock + trader balance) ──
-    setImmediate(async () => {
-      try {
-        const tasks: Promise<any>[] = [
-          // Update trader balance
-          prisma.trader.update({
-            where: { id: Number(traderId) },
-            data: { balance: { increment: remaining } },
-          }),
-        ];
+      await tx.trader.update({
+        where: { id: Number(traderId) },
+        data: { balance: { increment: remaining } },
+      });
 
-        // Update stock for products that have a productId
-        const productItems = items.filter((i: any) => i.productId);
-        if (productItems.length > 0) {
-          productItems.forEach((item: any) => {
-            tasks.push(
-              prisma.product.update({
-                where: { id: Number(item.productId) },
-                data: { stock: { increment: Number(item.quantity) } },
-              })
-            );
-          });
-
-          // Batch stock log insert
-          tasks.push(
-            prisma.stockLog.createMany({
-              data: productItems.map((item: any) => ({
-                productId: Number(item.productId),
-                type: "in",
-                quantity: Number(item.quantity),
-                reason: "purchase",
-                notes: `فاتورة تاجر #${invoice.invoiceNo}`,
-              })),
-            })
-          );
-        }
-
-        await Promise.all(tasks);
-      } catch (bgErr: any) {
-        console.error("Trader invoice background error:", bgErr.message);
+      const productItems = invoiceItems.filter((i: any) => i.productId);
+      for (const item of productItems) {
+        await tx.product.update({
+          where: { id: Number(item.productId) },
+          data: { stock: { increment: Number(item.quantity) } },
+        });
       }
+
+      if (productItems.length > 0) {
+        await tx.stockLog.createMany({
+          data: productItems.map((item: any) => ({
+            productId: Number(item.productId),
+            type: "in",
+            quantity: Number(item.quantity),
+            reason: "purchase",
+            notes: `فاتورة تاجر #${invoiceNo}`,
+          })),
+        });
+      }
+
+      return created;
     });
 
     return NextResponse.json(invoice, { status: 201 });

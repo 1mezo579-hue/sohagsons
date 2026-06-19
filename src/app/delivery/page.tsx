@@ -63,8 +63,8 @@ export default function DeliveryPage() {
       const res = await fetch("/api/invoices");
       if (res.ok) {
         const data = await res.json();
-        // Filter only delivery invoices
-        const deliveryOnly = data.filter((inv: any) => inv.orderType === "delivery");
+        const list = Array.isArray(data) ? data : [];
+        const deliveryOnly = list.filter((inv: any) => inv.orderType === "delivery");
         setInvoices(deliveryOnly);
 
         // Load statuses and rider changes from localStorage

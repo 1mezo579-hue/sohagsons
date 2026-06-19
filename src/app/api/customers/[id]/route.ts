@@ -13,7 +13,17 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
   try {
-    await prisma.customer.delete({ where: { id: parseInt(params.id) } });
+    const id = parseInt(params.id);
+    const invoiceCount = await prisma.invoice.count({ where: { customerId: id } });
+    if (invoiceCount > 0) {
+      return NextResponse.json(
+        { error: "لا يمكن حذف العميل لوجود فواتير مرتبطة به" },
+        { status: 409 }
+      );
+    }
+    await prisma.customer.delete({ where: { id } });
     return NextResponse.json({ ok: true });
-  } catch { return NextResponse.json({ error: "Server error" }, { status: 500 }); }
+  } catch {
+    return NextResponse.json({ error: "فشل حذف العميل" }, { status: 500 });
+  }
 }
