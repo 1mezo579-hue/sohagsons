@@ -130,19 +130,17 @@ export default function DeliveryPage() {
         icon={Truck}
         accent="cyan"
         actions={
-          <div className="bg-white/90 shadow-sm border border-slate-200/80 rounded-xl px-4 py-2 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm font-black text-slate-700">
+          <div className="surface-inset px-4 py-2 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-sm font-black text-zinc-300">
               نشط: {invoices.filter((inv) => statuses[inv.id] !== "delivered").length}
             </span>
           </div>
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1200px] mx-auto space-y-6">
-        
-        {/* Search & Filter Bar */}
-        <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="page-content max-w-[1200px] space-y-6">
+        <div className="surface-lg p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
           {/* Search */}
           <div className="relative w-full md:w-96">
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -151,7 +149,7 @@ export default function DeliveryPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="ابحث برقم الفاتورة، اسم العميل أو الهاتف..."
-              className="w-full bg-slate-50 border-2 border-slate-100 focus:border-blue-500 focus:bg-white rounded-2xl pr-12 pl-4 py-3 font-bold outline-none transition-all text-sm"
+              className="input text-sm font-bold pr-12"
             />
           </div>
 
@@ -205,7 +203,7 @@ export default function DeliveryPage() {
               return (
                 <div
                   key={invoice.id}
-                  className={`bg-white rounded-3xl border transition-all duration-300 overflow-hidden shadow-sm ${
+                  className={`surface-lg border transition-all duration-300 overflow-hidden ${
                     status === "pending"
                       ? "border-amber-200 hover:border-amber-300 shadow-amber-500/[0.02]"
                       : status === "shipping"

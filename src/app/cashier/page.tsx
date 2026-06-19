@@ -473,7 +473,7 @@ export default function CashierPage() {
         actions={
           <>
             <div className="hidden md:flex flex-col items-end">
-              <span className="text-sm font-bold text-slate-900">{user?.name}</span>
+              <span className="text-sm font-bold text-zinc-200">{user?.name}</span>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 {user?.role === "admin" ? "مدير" : "كاشير"}
               </span>
@@ -496,9 +496,7 @@ export default function CashierPage() {
               <div
                 key={c.id}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all cursor-pointer select-none font-bold text-sm shrink-0 ${
-                  isActive
-                    ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
-                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:border-slate-300"
+                  isActive ? "chip-active border-2" : "chip-idle border-2"
                 }`}
                 onClick={() => cart.switchCart(c.id)}
               >
@@ -525,7 +523,7 @@ export default function CashierPage() {
             cart.addCart();
             toast.success("تم فتح حساب زبون جديد!");
           }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md shrink-0 text-sm hover:-translate-y-0.5 active:translate-y-0"
+          className="flex items-center gap-1.5 px-4 py-2 btn-primary shrink-0 text-sm"
         >
           <Plus className="w-4 h-4" />
           زبون جديد
@@ -537,8 +535,8 @@ export default function CashierPage() {
         <div className="flex-1 flex flex-col gap-5 min-w-0 no-print overflow-hidden">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Barcode */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex-1">
-              <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+            <div className="surface p-4 flex-1">
+              <label className="label flex items-center gap-2 mb-2">
                 <ScanLine className="w-4 h-4 text-blue-500" />
                 مسح الباركود
               </label>
@@ -549,14 +547,14 @@ export default function CashierPage() {
                 onChange={(e) => setBarcodeInput(e.target.value)}
                 onKeyDown={handleBarcode}
                 placeholder="امسح الباركود هنا..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                className="input text-lg"
                 autoFocus
               />
             </div>
 
             {/* Search */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex-1">
-              <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+            <div className="surface p-4 flex-1">
+              <label className="label flex items-center gap-2 mb-2">
                 <Search className="w-4 h-4 text-blue-500" />
                 بحث بالاسم
               </label>
@@ -566,7 +564,7 @@ export default function CashierPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ابحث عن منتج..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                className="input text-lg"
               />
             </div>
           </div>
@@ -577,10 +575,8 @@ export default function CashierPage() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shadow-sm border ${
-                  selectedCategory === cat
-                    ? "bg-blue-600 text-white border-blue-600 shadow-[0_4px_14px_0_rgba(37,99,235,0.39)]"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${
+                  selectedCategory === cat ? "chip-active" : "chip-idle"
                 }`}
               >
                 {cat === "all" ? "الكل" : cat}
@@ -589,10 +585,10 @@ export default function CashierPage() {
           </div>
 
           {/* Products Grid */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex-1 overflow-auto p-5">
-            <div className="flex items-center gap-2 mb-4 text-slate-500">
-              <Package className="w-5 h-5 text-blue-500" />
-              <span className="font-bold">المنتجات المتاحة ({filteredProducts.length})</span>
+          <div className="surface-lg flex-1 overflow-auto p-5">
+            <div className="flex items-center gap-2 mb-4 text-zinc-500">
+              <Package className="w-5 h-5 text-violet-400" />
+              <span className="font-bold text-zinc-300">المنتجات المتاحة ({filteredProducts.length})</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
               {displayedProducts.map((product) => (
@@ -605,26 +601,24 @@ export default function CashierPage() {
                         addToCart(product, 1);
                       }
                     }}
-                    className={`w-full p-4 rounded-2xl border-2 text-right transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 ${
+                    className={`w-full product-tile text-right ${
                       product.stock <= product.minStock
-                        ? "border-rose-100 bg-rose-50/30 hover:border-rose-300"
-                        : product.name.includes("سايب") || product.name.includes("كيلو") 
-                        ? "border-blue-100 bg-blue-50/30 hover:border-blue-500" 
-                        : "border-slate-100 bg-white hover:border-blue-500/40"
+                        ? "border-rose-500/30 bg-rose-500/10"
+                        : ""
                     }`}
                   >
-                    <div className="font-bold text-[15px] text-slate-900 truncate mb-1.5">{product.name}</div>
-                    <div className="text-blue-600 font-black text-lg">
+                    <div className="font-bold text-[15px] text-zinc-100 truncate mb-1.5">{product.name}</div>
+                    <div className="text-violet-400 font-black text-lg">
                       {formatPrice(product.price)}
-                      <span className="text-xs text-slate-400 font-medium mr-1">/{product.unit}</span>
+                      <span className="text-xs text-zinc-500 font-medium mr-1">/{product.unit}</span>
                     </div>
-                    <div className="text-xs text-slate-500 mt-2 font-medium">
-                      مخزون: <span className={product.stock <= product.minStock ? "text-rose-500 font-bold" : "text-emerald-600 font-bold"}>
+                    <div className="text-xs text-zinc-500 mt-2 font-medium">
+                      مخزون: <span className={product.stock <= product.minStock ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"}>
                         {product.stock} {product.unit}
                       </span>
                     </div>
                     {product.priceType === "weight" && (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded-lg mt-2">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-500/15 text-amber-300 px-2 py-1 rounded-lg mt-2">
                         <Weight className="w-3.5 h-3.5" />
                         يوزن
                       </span>
@@ -638,7 +632,7 @@ export default function CashierPage() {
                       setNewPrice(product.price.toString());
                       setTimeout(() => editPriceRef.current?.focus(), 100);
                     }}
-                    className="absolute top-3 left-3 p-2 bg-white/90 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:text-white text-slate-400 shadow-sm border border-slate-100 z-10"
+                    className="absolute top-3 left-3 p-2 surface-inset opacity-0 group-hover:opacity-100 transition-all hover:bg-violet-600 hover:text-white text-zinc-500 z-10"
                     title="تعديل الاسم والسعر"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -651,7 +645,7 @@ export default function CashierPage() {
               <div className="flex justify-center pt-4">
                 <button 
                   onClick={() => setDisplayLimit(prev => prev + 80)}
-                  className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black transition-all border border-slate-200 shadow-sm"
+                  className="px-8 py-3 btn-secondary font-black"
                 >
                   تحميل المزيد من الأصناف ({products.length - displayLimit})
                 </button>
@@ -669,56 +663,56 @@ export default function CashierPage() {
 
         {/* Right: Cart */}
         <div className="w-full lg:w-[450px] flex flex-col gap-4">
-          <div className="bg-white rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-200 flex-1 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+          <div className="surface-lg p-5 flex-1 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                  <ShoppingCart className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                  <ShoppingCart className="w-5 h-5 text-violet-400" />
                 </div>
-                <span className="font-bold text-xl text-slate-900">سلة المشتريات</span>
+                <span className="font-bold text-xl text-zinc-100">سلة المشتريات</span>
               </div>
-              <span className="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+              <span className="text-sm font-bold text-violet-300 bg-violet-500/15 px-3 py-1.5 rounded-lg border border-violet-500/30">
                 {cart.items.length} صنف
               </span>
             </div>
 
             <div className="flex-1 overflow-auto space-y-3 mb-4 pr-2">
               {cart.items.length === 0 ? (
-                <div className="text-center text-slate-400 py-20">
-                  <ShoppingCart className="w-20 h-20 mx-auto mb-4 opacity-10 text-blue-900" />
-                  <p className="font-bold text-lg text-slate-500">السلة فارغة</p>
-                  <p className="text-sm mt-1 text-slate-400">امسح الباركود أو اختر منتج للإضافة</p>
+                <div className="text-center text-zinc-500 py-20">
+                  <ShoppingCart className="w-20 h-20 mx-auto mb-4 opacity-20" />
+                  <p className="font-bold text-lg text-zinc-400">السلة فارغة</p>
+                  <p className="text-sm mt-1">امسح الباركود أو اختر منتج للإضافة</p>
                 </div>
               ) : (
                 cart.items.map((item) => (
                   <div
                     key={item.productId}
-                    className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between group hover:border-blue-300 transition-colors shadow-sm"
+                    className="surface-inset p-4 flex items-center justify-between group hover:border-violet-500/30 transition-colors"
                   >
                     <div className="flex-1 min-w-0 pl-3">
-                      <div className="font-bold text-[15px] text-slate-900 truncate">{item.name}</div>
-                      <div className="text-sm font-bold text-blue-600 mt-1">
-                        {formatPrice(item.price)} <span className="text-xs text-slate-400 font-medium ml-1">× {item.quantity} {item.unit}</span>
+                      <div className="font-bold text-[15px] text-zinc-100 truncate">{item.name}</div>
+                      <div className="text-sm font-bold text-violet-400 mt-1">
+                        {formatPrice(item.price)} <span className="text-xs text-zinc-500 font-medium ml-1">× {item.quantity} {item.unit}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl p-1.5 border border-slate-200">
+                    <div className="flex items-center gap-1.5 surface-inset p-1.5">
                       <button
                         onClick={() => cart.updateQuantity(item.productId, item.quantity - 1)}
-                        className="w-9 h-9 rounded-lg bg-white shadow-sm border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center justify-center transition-colors"
+                        className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 flex items-center justify-center transition-colors"
                       >
                         <Minus className="w-4 h-4" />
                       </button>
-                      <span className="w-12 text-center font-black text-[15px] text-slate-900">{item.quantity}</span>
+                      <span className="w-12 text-center font-black text-[15px] text-zinc-100">{item.quantity}</span>
                       <button
                         onClick={() => cart.updateQuantity(item.productId, item.quantity + 1)}
-                        className="w-9 h-9 rounded-lg bg-white shadow-sm border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center justify-center transition-colors"
+                        className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 flex items-center justify-center transition-colors"
                       >
                         <Plus className="w-4 h-4" />
                       </button>
-                      <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                      <div className="w-px h-6 bg-white/10 mx-1"></div>
                       <button
                         onClick={() => cart.removeItem(item.productId)}
-                        className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors"
+                        className="w-9 h-9 rounded-lg bg-rose-500/15 text-rose-400 flex items-center justify-center hover:bg-rose-500/25 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -728,32 +722,31 @@ export default function CashierPage() {
               )}
             </div>
 
-            {/* Totals */}
-            <div className="border-t border-slate-200 pt-5 space-y-4">
+            <div className="border-t border-white/10 pt-5 space-y-4">
               <div className="flex justify-between text-[15px] font-bold">
-                <span className="text-slate-500">المجموع:</span>
-                <span className="text-slate-900">{formatPrice(cart.getTotal())}</span>
+                <span className="text-zinc-500">المجموع:</span>
+                <span className="text-zinc-100">{formatPrice(cart.getTotal())}</span>
               </div>
               {cart.orderType === "delivery" && (
                 <div className="flex justify-between text-[15px] font-bold">
-                  <span className="text-slate-500">التوصيل:</span>
-                  <span className="text-slate-900">{formatPrice(cart.getDeliveryFee())}</span>
+                  <span className="text-zinc-500">التوصيل:</span>
+                  <span className="text-zinc-100">{formatPrice(cart.getDeliveryFee())}</span>
                 </div>
               )}
-              <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200">
-                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
-                  <Percent className="w-4 h-4 text-slate-500" />
+              <div className="flex items-center gap-3 surface-inset p-2">
+                <div className="w-8 h-8 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                  <Percent className="w-4 h-4 text-violet-400" />
                 </div>
                 <input
                   type="number"
                   value={cart.discount}
                   onChange={(e) => cart.setDiscount(Number(e.target.value))}
                   placeholder="أضف خصم..."
-                  className="bg-transparent border-none outline-none text-slate-900 font-bold flex-1"
+                  className="bg-transparent border-none outline-none text-zinc-100 font-bold flex-1"
                 />
-                <span className="text-sm font-bold text-slate-500 pl-2">ج.م</span>
+                <span className="text-sm font-bold text-zinc-500 pl-2">ج.م</span>
               </div>
-              <div className="flex justify-between text-2xl font-black bg-blue-50 p-4 rounded-2xl border border-blue-200 text-blue-700">
+              <div className="flex justify-between text-2xl font-black bg-violet-500/15 p-4 rounded-2xl border border-violet-500/30 text-violet-300">
                 <span>الإجمالي:</span>
                 <span>{formatPrice(cart.getFinalTotal())}</span>
               </div>

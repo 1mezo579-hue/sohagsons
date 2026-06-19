@@ -220,7 +220,7 @@ export default function ReportsPage() {
       />
 
       {dateRange === "custom" && (
-        <div className="px-6 py-4 bg-white border-b border-slate-200 flex flex-wrap items-center gap-4 animate-fade-in shadow-sm no-print">
+        <div className="px-6 py-4 surface border-b border-white/5 flex flex-wrap items-center gap-4 animate-fade-in no-print">
           <Calendar className="w-5 h-5 text-blue-500" />
           <span className="text-sm font-bold text-slate-600">من تاريخ:</span>
           <input
@@ -239,7 +239,7 @@ export default function ReportsPage() {
         </div>
       )}
 
-      <div className={`p-4 md:p-6 max-w-7xl mx-auto space-y-8 animate-fade-in ${selectedInvoice ? 'no-print' : ''}`}>
+      <div className={`page-content space-y-8 animate-fade-in ${selectedInvoice ? "no-print" : ""}`}>
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
@@ -256,11 +256,11 @@ export default function ReportsPage() {
         <>
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
-          <KpiCard title="إجمالي المبيعات" value={formatPrice(stats.totalSales)} icon={DollarSign} color="text-blue-600" bg="bg-blue-50" sub={stats.returnsCount > 0 ? "صافي المبيعات" : undefined} />
-          <KpiCard title="صافي الأرباح" value={formatPrice(stats.profit)} icon={TrendingUp} color="text-emerald-600" bg="bg-emerald-50" sub={`${stats.profitMargin.toFixed(1)}% هامش الربح`} />
-          <KpiCard title="عدد الفواتير" value={stats.totalInvoices.toString()} icon={ShoppingCart} color="text-amber-600" bg="bg-amber-50" sub={`متوسط الفاتورة: ${formatPrice(stats.avgInvoice)}`} />
-          <KpiCard title="إجمالي المرتجعات" value={formatPrice(stats.returnsTotal)} icon={RotateCcw} color="text-rose-600" bg="bg-rose-50" sub={`عدد المرتجعات: ${stats.returnsCount}`} />
-          <KpiCard title="إجمالي الخصومات" value={formatPrice(stats.totalDiscount)} icon={TrendingDown} color="text-slate-600" bg="bg-slate-50" />
+          <KpiCard title="إجمالي المبيعات" value={formatPrice(stats.totalSales)} icon={DollarSign} color="text-blue-400" bg="bg-blue-500/15" sub={stats.returnsCount > 0 ? "صافي المبيعات" : undefined} />
+          <KpiCard title="صافي الأرباح" value={formatPrice(stats.profit)} icon={TrendingUp} color="text-emerald-400" bg="bg-emerald-500/15" sub={`${stats.profitMargin.toFixed(1)}% هامش الربح`} />
+          <KpiCard title="عدد الفواتير" value={stats.totalInvoices.toString()} icon={ShoppingCart} color="text-amber-400" bg="bg-amber-500/15" sub={`متوسط الفاتورة: ${formatPrice(stats.avgInvoice)}`} />
+          <KpiCard title="إجمالي المرتجعات" value={formatPrice(stats.returnsTotal)} icon={RotateCcw} color="text-rose-400" bg="bg-rose-500/15" sub={`عدد المرتجعات: ${stats.returnsCount}`} />
+          <KpiCard title="إجمالي الخصومات" value={formatPrice(stats.totalDiscount)} icon={TrendingDown} color="text-zinc-400" bg="bg-zinc-500/15" />
         </div>
 
         {/* View Tabs */}
@@ -274,10 +274,10 @@ export default function ReportsPage() {
             <button
               key={tab.key}
               onClick={() => setActiveView(tab.key as any)}
-              className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-sm md:text-[15px] font-bold transition-all shadow-sm border ${
+              className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-sm md:text-[15px] font-bold transition-all border ${
                 activeView === tab.key
-                  ? "bg-amber-500 text-white border-amber-500 shadow-[0_4px_14px_0_rgba(245,158,11,0.39)]"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                  ? "chip-active"
+                  : "chip-idle"
               }`}
             >
               <tab.icon className="w-4 h-4 md:w-5 md:h-5" />
@@ -291,11 +291,11 @@ export default function ReportsPage() {
           <div className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Hourly Sales Chart */}
-              <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+              <div className="lg:col-span-2 surface-lg p-6">
                 <div className="flex items-center justify-between mb-8">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">حركة المبيعات بالساعة</h3>
-                    <p className="text-sm font-medium text-slate-500 mt-1">توزيع المبيعات على مدار اليوم</p>
+                    <h3 className="text-lg font-bold text-zinc-100">حركة المبيعات بالساعة</h3>
+                    <p className="text-sm font-medium text-zinc-500 mt-1">توزيع المبيعات على مدار اليوم</p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
                     <Clock className="w-5 h-5 text-blue-500" />
@@ -309,11 +309,11 @@ export default function ReportsPage() {
                         <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis dataKey="hour" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `£${val}`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="hour" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
                     <Tooltip
-                      contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "16px", color: "#0f172a", fontWeight: "bold", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
+                      contentStyle={{ background: "#18181f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "#f4f4f5", fontWeight: "bold" }}
                       formatter={(value: number) => formatPrice(value)}
                     />
                     <Area type="monotone" dataKey="sales" stroke="#3b82f6" fill="url(#salesGradient)" strokeWidth={3} />
@@ -322,7 +322,7 @@ export default function ReportsPage() {
               </div>
 
               {/* Payment Methods */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+              <div className="surface-lg p-6">
                 <div className="flex items-center justify-between mb-8">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900">طرق الدفع</h3>
@@ -378,7 +378,7 @@ export default function ReportsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Categories Chart */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+              <div className="surface-lg p-6">
                 <div className="flex items-center justify-between mb-8">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900">المبيعات حسب القسم</h3>
@@ -407,7 +407,7 @@ export default function ReportsPage() {
               </div>
 
               {/* Top Products */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+              <div className="surface-lg p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900">أكثر المنتجات مبيعاً</h3>
@@ -449,7 +449,7 @@ export default function ReportsPage() {
 
         {/* INVOICES */}
         {activeView === "invoices" && (
-          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm animate-fade-in">
+          <div className="surface-lg border overflow-hidden animate-fade-in">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">سجل الفواتير</h3>
@@ -527,7 +527,7 @@ export default function ReportsPage() {
 
         {/* PRODUCTS */}
         {activeView === "products" && (
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm animate-fade-in">
+          <div className="surface-lg p-6 animate-fade-in">
             <h3 className="text-lg font-bold text-slate-900 mb-6">تفاصيل أداء المنتجات</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {topProducts.map((p, i) => (
@@ -565,7 +565,7 @@ export default function ReportsPage() {
         {activeView === "analytics" && (
           <div className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+              <div className="surface-lg p-6">
                 <h3 className="text-lg font-bold text-slate-900 mb-6">المبيعات والخصومات لأحدث الفواتير</h3>
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={filteredInvoices.slice(0, 15).map((inv, i) => ({
@@ -583,7 +583,7 @@ export default function ReportsPage() {
                 </ResponsiveContainer>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+              <div className="surface-lg p-6">
                 <h3 className="text-lg font-bold text-slate-900 mb-6">الإيراد والربح لكل فاتورة</h3>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={filteredInvoices.slice(0, 15).map((inv, i) => {
@@ -717,15 +717,15 @@ export default function ReportsPage() {
 
 function KpiCard({ title, value, icon: Icon, color, bg, sub }: { title: string; value: string; icon: any; color: string; bg: string; sub?: string }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-4 mb-4">
-        <div className={`w-12 h-12 rounded-2xl ${bg} flex items-center justify-center`}>
-          <Icon className={`w-6 h-6 ${color}`} />
+    <div className="kpi-dark">
+      <div className="flex items-center gap-4 mb-3">
+        <div className={`w-11 h-11 rounded-xl ${bg} flex items-center justify-center`}>
+          <Icon className={`w-5 h-5 ${color}`} />
         </div>
-        <div className="text-[15px] font-bold text-slate-500">{title}</div>
+        <div className="text-sm font-bold text-zinc-500">{title}</div>
       </div>
-      <div className="text-3xl font-black text-slate-900 pr-2">{value}</div>
-      {sub && <div className="text-[12px] font-bold text-slate-400 mt-3 pr-2 bg-slate-50 rounded-lg py-1 px-2 inline-block border border-slate-100">{sub}</div>}
+      <div className="text-2xl sm:text-3xl font-black text-zinc-100">{value}</div>
+      {sub && <div className="text-[11px] font-bold text-zinc-500 mt-2 surface-inset py-1 px-2 inline-block">{sub}</div>}
     </div>
   );
 }

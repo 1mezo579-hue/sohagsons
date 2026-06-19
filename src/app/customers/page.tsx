@@ -140,7 +140,7 @@ export default function CustomersPage() {
             placeholder="بحث بالاسم أو التليفون..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 pl-10 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+            className="input pl-10"
           />
           <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
@@ -148,11 +148,11 @@ export default function CustomersPage() {
         {/* Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map(c => (
-            <div key={c.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group">
+            <div key={c.id} className="surface p-5 hover:border-violet-500/30 transition-all relative group">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="font-bold text-lg text-slate-900">{c.name}</h3>
-                  <div className="flex items-center gap-1.5 text-slate-500 mt-1">
+                  <h3 className="font-bold text-lg text-zinc-100">{c.name}</h3>
+                  <div className="flex items-center gap-1.5 text-zinc-500 mt-1">
                     <Phone className="w-4 h-4" />
                     <span className="text-sm font-mono">{c.phone}</span>
                   </div>
