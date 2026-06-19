@@ -35,21 +35,26 @@ export async function POST(req: Request) {
     let txt = "";
     txt += separator();
     txt += centerText("ماركت ابناء سوهاج");
-    txt += centerText("سوبرماركت - دليفري");
+    txt += centerText(invoice.orderType === "delivery" ? "طلب دليفري" : invoice.orderType === "return" ? "مرتجع" : "فاتورة مبيعات");
     txt += separator();
 
     txt += `رقم الفاتورة: ${invoice.invoiceNo}\n`;
+    if (invoice.isReprint) txt += `(نسخة اعادة طباعة)\n`;
     txt += `التاريخ: ${new Date(invoice.createdAt).toLocaleString("ar-EG", {
       year: "numeric", month: "2-digit", day: "2-digit",
       hour: "2-digit", minute: "2-digit"
     })}\n`;
-    txt += `النوع: ${invoice.orderType === "delivery" ? "دليفري (توصيل)" : "صالة"}\n`;
+    txt += `النوع: ${invoice.orderType === "delivery" ? "دليفري (توصيل)" : invoice.orderType === "return" ? "مرتجع" : "صالة"}\n`;
 
     if (invoice.customer) {
       txt += separator();
       txt += `العميل: ${invoice.customer.name}\n`;
       if (invoice.customer.phone)   txt += `الهاتف: ${invoice.customer.phone}\n`;
       if (invoice.customer.address) txt += `العنوان: ${invoice.customer.address}\n`;
+      const pts = Math.floor(Math.abs(invoice.finalTotal || 0) / 10);
+      txt += `نقاط الفاتورة: ${pts} نقطة\n`;
+      if (invoice.customer.points != null) txt += `رصيد النقاط: ${invoice.customer.points}\n`;
+      if ((invoice.customer.balance || 0) > 0) txt += `رصيد آجل: ${invoice.customer.balance.toFixed(2)} ج\n`;
     }
 
     txt += separator();
@@ -78,8 +83,7 @@ export async function POST(req: Request) {
 
     txt += separator();
     txt += centerText("شكرا لتعاملكم معنا");
-    txt += centerText("نسعد بخدمتكم دائما");
-    txt += "\n\n\n\n"; // Feed lines before cut
+    txt += "\n\n"; // Feed lines before cut
 
     // ── Write temp file ─────────────────────────────────────────────
     const tempFile = path.join(os.tmpdir(), `receipt_${Date.now()}.txt`);

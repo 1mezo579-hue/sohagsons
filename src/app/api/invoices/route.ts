@@ -18,7 +18,7 @@ export async function GET() {
         deliveryFee: true,
         createdAt: true,
         user: { select: { name: true } },
-        customer: { select: { name: true, phone: true, address: true } },
+        customer: { select: { name: true, phone: true, address: true, points: true, balance: true } },
         items: {
           select: {
             id: true,

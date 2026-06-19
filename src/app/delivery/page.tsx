@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { formatPrice } from "@/lib/utils";
+import { printReceipt, toReceiptInvoice } from "@/lib/receiptPrint";
 import toast from "react-hot-toast";
 import {
   ArrowRight, Truck, Phone, MapPin, Calendar, Clock,
@@ -104,124 +105,17 @@ export default function DeliveryPage() {
   const printOrder = async (invoice: Invoice) => {
     setPrintingIds(prev => ({ ...prev, [invoice.id]: true }));
     const riderChangeVal = parseFloat(riderChanges[invoice.id] || "0");
-
-    // Prepare the payload for silent print API
-    const printPayload = {
-      ...invoice,
-      riderChange: riderChangeVal
-    };
+    const receipt = toReceiptInvoice(invoice, { riderChange: riderChangeVal });
 
     try {
-      toast.loading("جاري الطباعة الصامتة...", { id: `print-${invoice.id}` });
-      const res = await fetch("/api/print", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(printPayload),
-      });
-
-      if (res.ok) {
-        toast.success("تم إرسال الفاتورة للطابعة بنجاح 🎉", { id: `print-${invoice.id}` });
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "خطأ في السيرفر");
-      }
+      toast.loading("جاري الطباعة...", { id: `print-${invoice.id}` });
+      await printReceipt(receipt);
+      toast.success("تم إرسال الفاتورة للطابعة بنجاح 🎉", { id: `print-${invoice.id}` });
     } catch (error: any) {
-      console.warn("Silent printing failed, falling back to browser print dialog:", error);
-      toast.error("فشل في الطباعة الصامتة، جاري الفتح عبر المتصفح...", { id: `print-${invoice.id}` });
-      
-      // Fallback: Browser printing
-      fallbackPrintOrder(invoice, riderChangeVal);
+      toast.error(error?.message || "فشل في الطباعة", { id: `print-${invoice.id}` });
     } finally {
       setPrintingIds(prev => ({ ...prev, [invoice.id]: false }));
     }
-  };
-
-  const fallbackPrintOrder = (invoice: Invoice, riderChangeVal: number) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      toast.error("فشل فتح نافذة الطباعة للمتصفح");
-      return;
-    }
-
-    const itemsHtml = invoice.items.map(item => `
-      <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px;">
-        <span>${item.product.name} × ${item.quantity}</span>
-        <span>${formatPrice(item.total)}</span>
-      </div>
-    `).join("");
-
-    let riderChangeHtml = "";
-    if (riderChangeVal > 0) {
-      riderChangeHtml = `
-        <div class="row" style="color: #b45309; font-weight: bold; border-top: 1px dashed #d97706; padding-top: 5px; margin-top: 5px;">
-          <span>الباقي مع الطيار:</span>
-          <span>${formatPrice(riderChangeVal)}</span>
-        </div>
-      `;
-    }
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>فاتورة دليفري - ${invoice.invoiceNo}</title>
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; padding: 20px; color: #333; }
-            .header { text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-bottom: 15px; }
-            .section { border-bottom: 1px solid #eee; padding: 10px 0; }
-            .row { display: flex; justify-content: space-between; margin: 5px 0; }
-            .bold { font-weight: bold; }
-            .total { font-size: 18px; font-weight: bold; border-top: 2px dashed #ccc; padding-top: 10px; margin-top: 10px; }
-            .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #777; }
-          </style>
-        </head>
-        <body onload="window.print(); window.close();">
-          <div class="header">
-            <h2>ماركت أبناء سوهاج</h2>
-            <p>تلفون: 035551771 - 01224163621</p>
-            <h3>طلب دليفري</h3>
-            <p style="font-family: monospace;">${invoice.invoiceNo}</p>
-            <p>${new Date(invoice.createdAt).toLocaleString("ar-EG")}</p>
-          </div>
-
-          <div class="section">
-            <p class="bold">بيانات العميل:</p>
-            <p>الاسم: ${invoice.customer?.name || "زبون طياري"}</p>
-            <p>الهاتف: ${invoice.customer?.phone || "-"}</p>
-            <p>العنوان: ${invoice.customer?.address || "غير مسجل"}</p>
-          </div>
-
-          <div class="section">
-            <p class="bold">الأصناف المطلوب توصيلها:</p>
-            ${itemsHtml}
-          </div>
-
-          <div class="section">
-            <div class="row">
-              <span>المجموع:</span>
-              <span>${formatPrice(invoice.total)}</span>
-            </div>
-            <div class="row">
-              <span>رسوم الدليفري:</span>
-              <span>+${formatPrice(invoice.deliveryFee)}</span>
-            </div>
-            <div class="row">
-              <span>الخصم:</span>
-              <span>-${formatPrice(invoice.discount)}</span>
-            </div>
-            ${riderChangeHtml}
-            <div class="row total">
-              <span>الإجمالي المطلوب سداده:</span>
-              <span>${formatPrice(invoice.finalTotal)}</span>
-            </div>
-          </div>
-
-          <div class="footer">
-            شكراً لتعاملكم مع ماركت أبناء سوهاج
-          </div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
   };
 
   const filteredInvoices = invoices.filter(inv => {

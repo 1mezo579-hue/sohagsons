@@ -36,6 +36,7 @@ export default function CashierPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastInvoice, setLastInvoice] = useState<any>(null);
+  const [lastRiderChange, setLastRiderChange] = useState(0);
   const [weightInput, setWeightInput] = useState<{ productId: number; weight: string; moneyAmount: string } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -334,8 +335,9 @@ export default function CashierPage() {
         setShowCheckout(false);
         if (shouldPrint) {
           setShowReceipt(true);
-          // Direct Print
-          directPrint(invoice);
+          const riderCh = cart.orderType === "delivery" ? pilotChange : 0;
+          setLastRiderChange(riderCh);
+          directPrint({ ...invoice, riderChange: riderCh });
         } else {
           setShowReceipt(false);
         }
@@ -367,32 +369,23 @@ export default function CashierPage() {
 
   const directPrint = async (invoice: any) => {
     if (!invoice) return;
+    const receipt = {
+      ...invoice,
+      riderChange: invoice.riderChange ?? (cart.orderType === "delivery" ? pilotChange : 0),
+    };
     const loadingToast = toast.loading("جاري الطباعة...");
     try {
-      const res = await fetch("/api/print", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(invoice),
-      });
-      if (res.ok) {
-        toast.success("تمت الطباعة بنجاح", { id: loadingToast });
-      } else {
-        const data = await res.json();
-        toast.error(data.error || "فشل في الطباعة المباشرة", { id: loadingToast });
-        // Fallback to browser print if direct print fails
-        window.print();
-      }
-    } catch (err) {
-      toast.error("خطأ في الاتصال بخدمة الطباعة", { id: loadingToast });
-      window.print();
+      const { printReceipt, toReceiptInvoice } = await import("@/lib/receiptPrint");
+      await printReceipt(toReceiptInvoice(receipt));
+      toast.success("تمت الطباعة بنجاح", { id: loadingToast });
+    } catch {
+      toast.error("فشل في الطباعة", { id: loadingToast });
     }
   };
 
-  const printReceipt = () => {
+  const printReceiptBtn = () => {
     if (lastInvoice) {
-      directPrint(lastInvoice);
-    } else {
-      window.print();
+      directPrint({ ...lastInvoice, riderChange: lastInvoice.orderType === "delivery" ? lastRiderChange : 0 });
     }
   };
 
@@ -1166,15 +1159,31 @@ export default function CashierPage() {
                 </div>
               </div>
 
-              <p className="text-[11px] text-gray-500 mt-0.5">فاتورة مبيعات</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                {lastInvoice.orderType === "delivery" ? "🚚 طلب دليفري" : "فاتورة مبيعات"}
+              </p>
               <p className="text-[10px] text-gray-400 font-mono">{lastInvoice.invoiceNo}</p>
               <p className="text-[10px] text-gray-400 mb-1">
                 {new Date(lastInvoice.createdAt).toLocaleString("ar-EG")}
               </p>
+              {lastInvoice.orderType === "delivery" && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-1 text-[11px] font-bold text-blue-800">
+                  🚚 طلب توصيل — {lastInvoice.customer?.name || "عميل"}
+                </div>
+              )}
               {lastInvoice.customer && (
                 <div className="bg-gray-100 p-2 rounded-lg text-sm text-gray-700 font-bold">
                   العميل: {lastInvoice.customer.name}
-                  <div className="text-xs font-normal mt-1">النقاط المكتسبة: {Math.floor(lastInvoice.finalTotal / 10)} نقطة</div>
+                  {lastInvoice.customer.phone && (
+                    <div className="text-xs font-normal mt-0.5">📞 {lastInvoice.customer.phone}</div>
+                  )}
+                  {lastInvoice.customer.address && (
+                    <div className="text-xs font-normal">📍 {lastInvoice.customer.address}</div>
+                  )}
+                  <div className="text-xs font-normal mt-1">⭐ نقاط هذه الفاتورة: {Math.floor(lastInvoice.finalTotal / 10)} نقطة</div>
+                  {lastInvoice.customer.points != null && (
+                    <div className="text-xs font-normal">🏅 رصيد النقاط: {lastInvoice.customer.points} نقطة</div>
+                  )}
                 </div>
               )}
             </div>
@@ -1203,6 +1212,12 @@ export default function CashierPage() {
                 <span>الخصم:</span>
                 <span>{formatPrice(lastInvoice.discount)}</span>
               </div>
+              {lastInvoice.orderType === "delivery" && lastRiderChange > 0 && (
+                <div className="flex justify-between text-amber-700 font-bold text-[12px]">
+                  <span>الباقي مع الطيار:</span>
+                  <span>{formatPrice(lastRiderChange)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-[15px] font-bold text-gray-900 border-t border-gray-200 pt-1 mt-1">
                 <span>الإجمالي:</span>
                 <span>{formatPrice(lastInvoice.finalTotal)}</span>
@@ -1218,7 +1233,7 @@ export default function CashierPage() {
             </div>
 
             <div className="flex gap-2 mt-4 no-print">
-              <button onClick={printReceipt} className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors">
+              <button onClick={printReceiptBtn} className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors">
                 <Printer className="w-4 h-4" />
                 طباعة
               </button>

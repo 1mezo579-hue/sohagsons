@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { openReceiptPrintWindow, toReceiptInvoice } from "@/lib/receiptPrint";
 import {
   ArrowRight, TrendingUp, TrendingDown, Calendar,
   DollarSign, Package, ShoppingCart, Users, Clock,
@@ -627,7 +628,10 @@ export default function ReportsPage() {
                 <p className="text-sm font-bold text-slate-500 mt-1">{formatDate(selectedInvoice.createdAt)} • الكاشير: {selectedInvoice.user?.name || "-"}</p>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors">
+                <button onClick={() => {
+                  const ok = openReceiptPrintWindow(toReceiptInvoice(selectedInvoice, { isReprint: true }));
+                  if (!ok) alert("فشل فتح نافذة الطباعة — تأكد من السماح بالنوافذ المنبثقة");
+                }} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors">
                   <Printer className="w-4 h-4" />
                   طباعة
                 </button>
