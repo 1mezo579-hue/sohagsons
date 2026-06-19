@@ -27,7 +27,7 @@ export interface ReceiptInvoice {
   isReprint?: boolean;
 }
 
-const THERMAL_CSS = `@page{size:80mm auto;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Tahoma,Arial,sans-serif;direction:rtl;width:74mm;max-width:74mm;margin:0 auto;padding:2mm 3mm;color:#111;font-size:11px;line-height:1.3}.c{text-align:center}.t{font-size:15px;font-weight:900;margin-bottom:1px}.p{font-size:10px;font-weight:700;color:#333;margin:1px 0}.b{display:inline-block;background:#1d4ed8;color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:3px;margin:3px 0}.br{background:#be123c}.m{font-size:9px;color:#666;margin:1px 0}.d{border-top:1px dashed #bbb;margin:4px 0}.cu{background:#f3f4f6;border-radius:3px;padding:3px 5px;margin:3px 0;font-size:10px;font-weight:700}.cu s{display:block;font-weight:500;font-size:9px;color:#555;margin-top:1px}.i{display:flex;justify-content:space-between;gap:3px;margin:1px 0;font-size:11px}.in{flex:1;word-break:break-word}.ip{white-space:nowrap;font-weight:600}.r{display:flex;justify-content:space-between;margin:1px 0;font-size:11px}.rt{font-size:13px;font-weight:900;border-top:1px solid #ccc;padding-top:3px;margin-top:3px}.rh{color:#b45309;font-weight:800}.f{text-align:center;font-size:9px;color:#777;margin-top:4px;padding-top:3px;border-top:1px solid #ddd}`;
+const THERMAL_CSS = `@page{size:80mm auto;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Tahoma,Arial,sans-serif;direction:rtl;width:74mm;max-width:74mm;margin:0 auto;padding:2mm 3mm;color:#111;font-size:11px;line-height:1.35}.c{text-align:center}.t{font-size:15px;font-weight:900;margin-bottom:1px}.p{font-size:10px;font-weight:700;color:#333;margin:1px 0}.b{display:inline-block;background:#1d4ed8;color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:3px;margin:3px 0}.br{background:#be123c}.m{font-size:9px;color:#666;margin:1px 0}.d{border-top:1px dashed #bbb;margin:4px 0}.cu{background:#f3f4f6;border-radius:3px;padding:4px 6px;margin:4px 0;font-size:11px;font-weight:700}.cu .cl{display:block;font-weight:600;font-size:10px;color:#333;margin-top:2px;line-height:1.4}.i{display:flex;justify-content:space-between;gap:3px;margin:1px 0;font-size:11px}.in{flex:1;word-break:break-word}.ip{white-space:nowrap;font-weight:600}.r{display:flex;justify-content:space-between;margin:1px 0;font-size:11px}.rt{font-size:13px;font-weight:900;border-top:1px solid #ccc;padding-top:3px;margin-top:3px}.rh{color:#b45309;font-weight:800}.f{text-align:center;font-size:9px;color:#777;margin-top:4px;padding-top:3px;border-top:1px solid #ddd}`;
 
 function itemName(item: ReceiptInvoice["items"][0]): string {
   return item.product?.name || "منتج";
@@ -55,6 +55,44 @@ function getPrintFrame(): HTMLIFrameElement {
   return frame;
 }
 
+function mergeCustomer(
+  fromApi: ReceiptInvoice["customer"],
+  fallback?: ReceiptInvoice["customer"] | null
+): ReceiptInvoice["customer"] | null {
+  if (!fromApi && !fallback) return null;
+  const a = fromApi || fallback!;
+  const f = fallback || fromApi!;
+  return {
+    name: a.name || f.name,
+    phone: a.phone || f.phone,
+    address: a.address ?? f.address ?? null,
+    points: a.points ?? f.points,
+    balance: a.balance ?? f.balance,
+  };
+}
+
+/** Customer block for receipt — includes points earned on this sale */
+export function enrichCustomerForReceipt(
+  customer: ReceiptInvoice["customer"] | null | undefined,
+  finalTotal: number,
+  paymentType?: string,
+  alreadyUpdated?: boolean
+): ReceiptInvoice["customer"] | null {
+  if (!customer) return null;
+  const earned = Math.floor(Math.abs(finalTotal) / 10);
+  const basePoints = Math.floor(customer.points ?? 0);
+  return {
+    name: customer.name,
+    phone: customer.phone || "",
+    address: customer.address || null,
+    points: alreadyUpdated ? basePoints : basePoints + earned,
+    balance:
+      paymentType === "credit" && !alreadyUpdated
+        ? (customer.balance ?? 0) + finalTotal
+        : customer.balance ?? 0,
+  };
+}
+
 export function buildReceiptHtml(invoice: ReceiptInvoice): string {
   const isDelivery = invoice.orderType === "delivery";
   const isReturn = invoice.orderType === "return";
@@ -70,12 +108,13 @@ export function buildReceiptHtml(invoice: ReceiptInvoice): string {
 
   let customerHtml = "";
   if (invoice.customer) {
-    customerHtml = `<div class="cu">العميل: ${esc(invoice.customer.name)}${
-      invoice.customer.phone ? `<s>هاتف: ${esc(invoice.customer.phone)}</s>` : ""
-    }${invoice.customer.address ? `<s>عنوان: ${esc(invoice.customer.address)}</s>` : ""}${
-      !isReturn ? `<s>نقاط الفاتورة: ${pointsEarned}</s>` : ""
-    }${invoice.customer.points != null ? `<s>رصيد النقاط: ${invoice.customer.points}</s>` : ""}${
-      (invoice.customer.balance || 0) > 0 ? `<s>رصيد آجل: ${formatPrice(invoice.customer.balance!)}</s>` : ""
+    const c = invoice.customer;
+    customerHtml = `<div class="cu"><strong>العميل: ${esc(c.name)}</strong>${
+      c.phone ? `<span class="cl">هاتف: ${esc(c.phone)}</span>` : ""
+    }${c.address ? `<span class="cl">عنوان: ${esc(c.address)}</span>` : ""}${
+      !isReturn ? `<span class="cl">نقاط هذه الفاتورة: ${pointsEarned}</span>` : ""
+    }${c.points != null ? `<span class="cl">رصيد النقاط: ${Math.floor(c.points)}</span>` : ""}${
+      (c.balance || 0) > 0 ? `<span class="cl">رصيد آجل: ${formatPrice(c.balance!)}</span>` : ""
     }</div>`;
   }
 
@@ -178,7 +217,19 @@ export async function printReceiptAndWait(invoice: ReceiptInvoice): Promise<void
   }
 }
 
-export function toReceiptInvoice(raw: any, extras?: { riderChange?: number; isReprint?: boolean }): ReceiptInvoice {
+export function toReceiptInvoice(
+  raw: any,
+  extras?: {
+    riderChange?: number;
+    isReprint?: boolean;
+    customerSnapshot?: ReceiptInvoice["customer"] | null;
+  }
+): ReceiptInvoice {
+  const merged = mergeCustomer(raw.customer, extras?.customerSnapshot);
+  const customer = extras?.isReprint
+    ? merged
+    : enrichCustomerForReceipt(merged, raw.finalTotal, raw.paymentType);
+
   return {
     invoiceNo: raw.invoiceNo,
     createdAt: raw.createdAt,
@@ -188,7 +239,7 @@ export function toReceiptInvoice(raw: any, extras?: { riderChange?: number; isRe
     finalTotal: raw.finalTotal,
     deliveryFee: raw.deliveryFee,
     paymentType: raw.paymentType,
-    customer: raw.customer || null,
+    customer,
     items: raw.items || [],
     riderChange: extras?.riderChange ?? raw.riderChange ?? 0,
     isReprint: extras?.isReprint,

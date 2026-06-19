@@ -302,8 +302,21 @@ export default function CashierPage() {
     if (cart.paymentType === "credit" && !selectedCustomer) {
       return toast.error("يجب اختيار اسم العميل لتسجيل الفاتورة كـ آجل");
     }
+    if (cart.orderType === "delivery" && !selectedCustomer) {
+      return toast.error("يجب اختيار العميل لطلبات الدليفري (اسم، تليفون، عنوان)");
+    }
 
     setIsLoading(true);
+
+    const customerSnapshot = selectedCustomer
+      ? {
+          name: selectedCustomer.name,
+          phone: selectedCustomer.phone,
+          address: selectedCustomer.address ?? null,
+          points: selectedCustomer.points ?? 0,
+          balance: selectedCustomer.balance ?? 0,
+        }
+      : null;
 
     const invoiceData = {
       invoiceNo: generateInvoiceNo(),
@@ -332,14 +345,27 @@ export default function CashierPage() {
 
       if (res.ok) {
         const invoice = await res.json();
-        
-        setLastInvoice(invoice);
+        const riderCh = cart.orderType === "delivery" ? pilotChange : 0;
+
+        const receipt = toReceiptInvoice(
+          { ...invoice, orderType: cart.orderType, deliveryFee: cart.getDeliveryFee() },
+          { riderChange: riderCh, customerSnapshot }
+        );
+
+        const enriched = {
+          ...invoice,
+          orderType: cart.orderType,
+          deliveryFee: cart.getDeliveryFee(),
+          customer: receipt.customer,
+          riderChange: riderCh,
+        };
+
+        setLastInvoice(enriched);
         setShowCheckout(false);
         if (shouldPrint) {
           setShowReceipt(true);
-          const riderCh = cart.orderType === "delivery" ? pilotChange : 0;
           setLastRiderChange(riderCh);
-          directPrint({ ...invoice, riderChange: riderCh });
+          printReceipt(receipt);
         } else {
           setShowReceipt(false);
         }
@@ -369,19 +395,14 @@ export default function CashierPage() {
     }
   };
 
-  const directPrint = (invoice: any) => {
-    if (!invoice) return;
-    const receipt = {
-      ...invoice,
-      riderChange: invoice.riderChange ?? (cart.orderType === "delivery" ? pilotChange : 0),
-    };
-    printReceipt(toReceiptInvoice(receipt));
-  };
-
   const printReceiptBtn = () => {
-    if (lastInvoice) {
-      directPrint({ ...lastInvoice, riderChange: lastInvoice.orderType === "delivery" ? lastRiderChange : 0 });
-    }
+    if (!lastInvoice) return;
+    printReceipt(
+      toReceiptInvoice(
+        { ...lastInvoice, riderChange: lastInvoice.orderType === "delivery" ? lastRiderChange : 0 },
+        { riderChange: lastInvoice.orderType === "delivery" ? lastRiderChange : 0, isReprint: true }
+      )
+    );
   };
 
 
@@ -1008,9 +1029,11 @@ export default function CashierPage() {
             )}
 
             <div className="mb-4">
-              <label className="label block text-sm font-bold text-slate-700 mb-2">تسجيل الفاتورة باسم عميل (للنقاط والدليفري)</label>
+              <label className="label block text-sm font-bold mb-2">
+                {cart.orderType === "delivery" ? "اختيار العميل (مطلوب للدليفري) *" : "تسجيل الفاتورة باسم عميل (للنقاط)"}
+              </label>
               <select 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700"
+                className="input font-bold"
                 value={selectedCustomer?.id || ""}
                 onChange={(e) => {
                   const id = parseInt(e.target.value);
@@ -1018,11 +1041,17 @@ export default function CashierPage() {
                   setSelectedCustomer(c || null);
                 }}
               >
-                <option value="">-- زبون طياري (بدون تسجيل) --</option>
+                <option value="">{cart.orderType === "delivery" ? "-- اختر العميل --" : "-- زبون طياري (بدون تسجيل) --"}</option>
                 {customers.map(c => (
                   <option key={c.id} value={c.id}>{c.name} - {c.phone}</option>
                 ))}
               </select>
+              {selectedCustomer && cart.orderType === "delivery" && (
+                <div className="mt-2 surface-inset p-3 text-xs font-semibold text-zinc-300 space-y-1">
+                  <div>📞 {selectedCustomer.phone}</div>
+                  <div>📍 {selectedCustomer.address || "لا يوجد عنوان — حدّث بيانات العميل"}</div>
+                </div>
+              )}
             </div>
 
             <div className="mb-4">

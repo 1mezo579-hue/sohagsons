@@ -104,7 +104,7 @@ export default function DeliveryPage() {
 
   const printOrder = (invoice: Invoice) => {
     const riderChangeVal = parseFloat(riderChanges[invoice.id] || "0");
-    printReceipt(toReceiptInvoice(invoice, { riderChange: riderChangeVal }));
+    printReceipt(toReceiptInvoice(invoice, { riderChange: riderChangeVal, isReprint: true }));
     toast.success("تم إرسال الفاتورة للطباعة");
   };
 
