@@ -79,6 +79,13 @@ function itemName(item: ReceiptInvoice["items"][0]): string {
   return item.product?.name || "منتج";
 }
 
+/** Silent thermal print works only on local Windows POS machine */
+function canUseSilentPrint(): boolean {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname;
+  return h === "localhost" || h === "127.0.0.1" || h.startsWith("192.168.") || h.startsWith("10.");
+}
+
 export function buildReceiptHtml(invoice: ReceiptInvoice): string {
   const isDelivery = invoice.orderType === "delivery";
   const isReturn = invoice.orderType === "return";
@@ -147,7 +154,7 @@ export function buildReceiptHtml(invoice: ReceiptInvoice): string {
 </html>`;
 }
 
-/** Opens a dedicated 80mm print window — reliable for repeat prints */
+/** Opens a dedicated 80mm print window — works on Vercel and local */
 export function openReceiptPrintWindow(invoice: ReceiptInvoice): boolean {
   const win = window.open("", "_blank", "width=320,height=600");
   if (!win) return false;
@@ -157,20 +164,23 @@ export function openReceiptPrintWindow(invoice: ReceiptInvoice): boolean {
   return true;
 }
 
-/** Try silent API print, fall back to thermal popup */
+/** Print receipt: silent on local POS, browser popup on Vercel/cloud */
 export async function printReceipt(invoice: ReceiptInvoice): Promise<void> {
-  try {
-    const res = await fetch("/api/print", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(invoice),
-    });
-    if (res.ok) return;
-  } catch {
-    /* fall through */
+  if (canUseSilentPrint()) {
+    try {
+      const res = await fetch("/api/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invoice),
+      });
+      if (res.ok) return;
+    } catch {
+      /* fall through to browser print */
+    }
   }
+
   if (!openReceiptPrintWindow(invoice)) {
-    throw new Error("فشل فتح نافذة الطباعة");
+    throw new Error("فشل فتح نافذة الطباعة — اسمح بالنوافذ المنبثقة في المتصفح");
   }
 }
 

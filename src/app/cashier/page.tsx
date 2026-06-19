@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useCartStore } from "@/hooks/useCartStore";
 import { formatPrice, generateInvoiceNo } from "@/lib/utils";
+import { printReceipt, toReceiptInvoice } from "@/lib/receiptPrint";
 import { CartItem } from "@/types";
 import toast from "react-hot-toast";
 import {
@@ -375,11 +376,10 @@ export default function CashierPage() {
     };
     const loadingToast = toast.loading("جاري الطباعة...");
     try {
-      const { printReceipt, toReceiptInvoice } = await import("@/lib/receiptPrint");
       await printReceipt(toReceiptInvoice(receipt));
       toast.success("تمت الطباعة بنجاح", { id: loadingToast });
     } catch {
-      toast.error("فشل في الطباعة", { id: loadingToast });
+      toast.error("فشل في الطباعة — تأكد من السماح بالنوافذ المنبثقة", { id: loadingToast });
     }
   };
 

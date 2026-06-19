@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { formatPrice } from "@/lib/utils";
+import { printReceipt, toReceiptInvoice } from "@/lib/receiptPrint";
 import toast from "react-hot-toast";
 import {
   Search, Trash2, Minus, Plus, Printer, RotateCcw,
@@ -270,20 +271,10 @@ export default function ReturnsPage() {
     if (!invoice) return;
     const loadingToast = toast.loading("جاري طباعة إيصال المرتجع...");
     try {
-      const res = await fetch("/api/print", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...invoice, orderType: "return" }), // Flag as return for receipt format
-      });
-      if (res.ok) {
-        toast.success("تمت الطباعة بنجاح", { id: loadingToast });
-      } else {
-        toast.error("فشل في الطباعة المباشرة، جاري فتح الطباعة العادية", { id: loadingToast });
-        window.print();
-      }
+      await printReceipt(toReceiptInvoice({ ...invoice, orderType: "return" }));
+      toast.success("تمت الطباعة بنجاح", { id: loadingToast });
     } catch {
-      toast.error("خطأ في الاتصال بخدمة الطباعة", { id: loadingToast });
-      window.print();
+      toast.error("فشل في الطباعة — تأكد من السماح بالنوافذ المنبثقة", { id: loadingToast });
     }
   };
 
