@@ -8,16 +8,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2563eb",
+  themeColor: "#07070a",
   width: "device-width",
   initialScale: 1,
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl">
       <body className="page-bg">
@@ -33,7 +29,10 @@ export default function RootLayout({
               borderRadius: "14px",
               padding: "12px 16px",
               fontWeight: 700,
-              boxShadow: "0 8px 32px rgba(15, 23, 42, 0.12)",
+              background: "#18181f",
+              color: "#f4f4f5",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
             },
           }}
         />

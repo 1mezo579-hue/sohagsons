@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import toast from "react-hot-toast";
 import { formatPrice, formatDate } from "@/lib/utils";
-import { ArrowRight, Plus, Wallet, Search, Trash2, Tag, Calendar, Banknote, X } from "lucide-react";
+import { Plus, Wallet, Search, Trash2, Tag, Calendar, Banknote, X } from "lucide-react";
 
 interface Expense {
   id: number;
@@ -78,13 +79,7 @@ export default function ExpensesPage() {
     } catch { toast.error("فشل الحذف"); }
   };
 
-  if (!isChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!isChecked) return <LoadingScreen accent="rose" />;
 
   const filtered = expenses.filter(e => 
     e.category.includes(searchQuery) || (e.description && e.description.includes(searchQuery))
@@ -116,29 +111,21 @@ export default function ExpensesPage() {
   const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-red-200">
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
-            <ArrowRight className="w-6 h-6" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/20">
-              <Wallet className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">سجل المصروفات</h1>
-              <p className="text-sm text-slate-500 font-medium">متابعة دقيقة لكل جنيه يُصرف</p>
-            </div>
-          </div>
-        </div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all shadow-sm font-bold">
-          <Plus className="w-5 h-5" />
-          تسجيل مصروف
-        </button>
-      </header>
+    <div className="min-h-screen">
+      <PageHeader
+        title="سجل المصروفات"
+        subtitle="متابعة دقيقة لكل جنيه يُصرف"
+        icon={Wallet}
+        accent="rose"
+        actions={
+          <button onClick={() => setShowForm(true)} className="btn-danger flex items-center gap-2 !py-2 !px-4 text-sm">
+            <Plus className="w-4 h-4" />
+            تسجيل مصروف
+          </button>
+        }
+      />
 
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="page-content space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="relative w-full max-w-md">
             <input

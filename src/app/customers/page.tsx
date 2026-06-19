@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import toast from "react-hot-toast";
-import { ArrowRight, Plus, Truck, Users, Star, Phone, Search, Trash2, Edit2, X, Save, Clock, Banknote, Check } from "lucide-react";
+import { Plus, Users, Star, Phone, Search, Trash2, Edit2, X, Save, Clock, Banknote, Check } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
 interface Customer {
@@ -110,36 +111,28 @@ export default function CustomersPage() {
     setShowForm(true);
   };
 
-  if (!isChecked) return null;
+  if (!isChecked) return <LoadingScreen accent="cyan" />;
 
   const filtered = customers.filter(c => 
     c.name.includes(searchQuery) || c.phone.includes(searchQuery)
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-indigo-200">
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
-            <ArrowRight className="w-6 h-6" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Truck className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">العملاء والدليفري</h1>
-              <p className="text-sm text-slate-500 font-medium">إدارة العملاء ونقاط الولاء</p>
-            </div>
-          </div>
-        </div>
-        <button onClick={() => openForm()} className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-sm font-bold">
-          <Plus className="w-5 h-5" />
-          عميل جديد
-        </button>
-      </header>
+    <div className="min-h-screen">
+      <PageHeader
+        title="العملاء"
+        subtitle="إدارة العملاء ونقاط الولاء"
+        icon={Users}
+        accent="cyan"
+        actions={
+          <button onClick={() => openForm()} className="btn-primary flex items-center gap-2 !py-2 !px-4 text-sm">
+            <Plus className="w-4 h-4" />
+            عميل جديد
+          </button>
+        }
+      />
 
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="page-content space-y-6">
         {/* Search */}
         <div className="relative max-w-md">
           <input

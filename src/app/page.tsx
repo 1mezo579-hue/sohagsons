@@ -12,88 +12,26 @@ import {
   BarChart3,
   Users,
   Store,
-  ChevronLeft,
+  ArrowLeft,
   LogOut,
   Wallet,
   Truck,
   Contact,
   RotateCcw,
   Settings,
+  Sparkles,
 } from "lucide-react";
 
 const ALL_MODULES = [
-  {
-    title: "الكاشير",
-    desc: "إتمام عمليات البيع وإصدار الفواتير",
-    icon: ShoppingCart,
-    href: "/cashier",
-    accent: "from-blue-600 to-blue-700 shadow-blue-500/30",
-    roles: ["admin", "manager", "cashier"],
-  },
-  {
-    title: "المخزن",
-    desc: "إدارة المنتجات والأقسام والمخزون",
-    icon: Package,
-    href: "/inventory",
-    accent: "from-emerald-500 to-teal-600 shadow-emerald-500/30",
-    roles: ["admin", "manager"],
-  },
-  {
-    title: "التقارير",
-    desc: "تقارير المبيعات والأرباح والتحليلات",
-    icon: BarChart3,
-    href: "/reports",
-    accent: "from-amber-500 to-orange-500 shadow-amber-500/30",
-    roles: ["admin", "manager"],
-  },
-  {
-    title: "العملاء",
-    desc: "إدارة العملاء ونقاط الولاء",
-    icon: Users,
-    href: "/customers",
-    accent: "from-indigo-500 to-purple-600 shadow-indigo-500/30",
-    roles: ["admin", "manager", "cashier"],
-  },
-  {
-    title: "طلبات الدليفري",
-    desc: "متابعة وتوصيل طلبات الدليفري النشطة",
-    icon: Truck,
-    href: "/delivery",
-    accent: "from-cyan-500 to-blue-600 shadow-cyan-500/30",
-    roles: ["admin", "manager", "cashier"],
-  },
-  {
-    title: "المرتجع",
-    desc: "تسجيل المرتجعات وإعادتها للمخزون",
-    icon: RotateCcw,
-    href: "/returns",
-    accent: "from-rose-600 to-rose-700 shadow-rose-500/30",
-    roles: ["admin", "manager", "cashier"],
-  },
-  {
-    title: "المصروفات",
-    desc: "تسجيل الإيجار والكهرباء والرواتب",
-    icon: Wallet,
-    href: "/expenses",
-    accent: "from-rose-500 to-red-600 shadow-red-500/30",
-    roles: ["admin", "manager"],
-  },
-  {
-    title: "التجار",
-    desc: "حسابات الموردين وفواتير الشراء",
-    icon: Contact,
-    href: "/traders",
-    accent: "from-slate-700 to-slate-900 shadow-slate-700/30",
-    roles: ["admin", "manager"],
-  },
-  {
-    title: "الإعدادات",
-    desc: "إدارة المستخدمين والصلاحيات",
-    icon: Settings,
-    href: "/users",
-    accent: "from-violet-500 to-purple-600 shadow-violet-500/30",
-    roles: ["admin"],
-  },
+  { title: "الكاشير", desc: "بيع سريع وفواتير", icon: ShoppingCart, href: "/cashier", glow: "group-hover:shadow-violet-500/25", iconBg: "from-violet-500 to-indigo-600", roles: ["admin", "manager", "cashier"] },
+  { title: "المخزن", desc: "منتجات ومخزون", icon: Package, href: "/inventory", glow: "group-hover:shadow-emerald-500/25", iconBg: "from-emerald-400 to-teal-600", roles: ["admin", "manager"] },
+  { title: "التقارير", desc: "مبيعات وأرباح", icon: BarChart3, href: "/reports", glow: "group-hover:shadow-amber-500/25", iconBg: "from-amber-400 to-orange-500", roles: ["admin", "manager"] },
+  { title: "العملاء", desc: "ولاء ونقاط", icon: Users, href: "/customers", glow: "group-hover:shadow-cyan-500/25", iconBg: "from-cyan-400 to-blue-600", roles: ["admin", "manager", "cashier"] },
+  { title: "الدليفري", desc: "توصيل وطباعة", icon: Truck, href: "/delivery", glow: "group-hover:shadow-sky-500/25", iconBg: "from-sky-400 to-blue-600", roles: ["admin", "manager", "cashier"] },
+  { title: "المرتجع", desc: "إرجاع للمخزن", icon: RotateCcw, href: "/returns", glow: "group-hover:shadow-rose-500/25", iconBg: "from-rose-500 to-pink-600", roles: ["admin", "manager", "cashier"] },
+  { title: "المصروفات", desc: "إيجار ورواتب", icon: Wallet, href: "/expenses", glow: "group-hover:shadow-red-500/25", iconBg: "from-red-500 to-rose-600", roles: ["admin", "manager"] },
+  { title: "التجار", desc: "موردين ومشتريات", icon: Contact, href: "/traders", glow: "group-hover:shadow-zinc-500/25", iconBg: "from-zinc-500 to-zinc-700", roles: ["admin", "manager"] },
+  { title: "الإعدادات", desc: "مستخدمين وصلاحيات", icon: Settings, href: "/users", glow: "group-hover:shadow-purple-500/25", iconBg: "from-purple-500 to-violet-600", roles: ["admin"] },
 ];
 
 const roleLabel: Record<string, string> = {
@@ -107,70 +45,89 @@ export default function Home() {
   const { user, isChecked } = useRequireAuth();
   const logout = useAuthStore((s) => s.logout);
 
-  const handleLogout = () => {
-    logout();
-    router.replace("/login");
-  };
-
   if (!isChecked) return <LoadingScreen />;
 
   const visibleModules = ALL_MODULES.filter((m) => user && m.roles.includes(user.role));
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "صباح الخير" : hour < 17 ? "مساء الخير" : "مساء النور";
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+    <main className="min-h-screen relative overflow-hidden">
       <PageBackground />
 
-      <div className="w-full max-w-3xl animate-fade-in relative z-10">
-        <div className="text-center mb-8 sm:mb-10">
-          <div className="w-[4.5rem] h-[4.5rem] sm:w-20 sm:h-20 mx-auto rounded-[1.25rem] bg-white/90 backdrop-blur shadow-soft flex items-center justify-center mb-5 border border-white">
-            <Store className="w-9 h-9 sm:w-10 sm:h-10 text-blue-700" />
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 animate-fade-in">
+        {/* Top bar */}
+        <div className="flex items-center justify-between mb-8 sm:mb-12">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <Store className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-zinc-500">ماركت أبناء سوهاج</p>
+              <p className="text-sm font-black text-zinc-200">POS System</p>
+            </div>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight mb-2">أبناء سوهاج</h1>
-          <p className="text-sm sm:text-base text-slate-500 font-bold mb-6">نظام نقطة البيع وإدارة المخزن</p>
-
-          <div className="inline-flex items-center gap-3 glass-panel py-3 px-4 sm:px-5 !rounded-2xl">
-            <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
-              <Users className="w-4 h-4 text-blue-600" />
+          <div className="user-pill">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+              <Users className="w-4 h-4 text-violet-300" />
             </div>
-            <div className="text-right">
-              <div className="font-black text-slate-900 text-sm">{user?.name}</div>
-              <div className="text-[11px] font-bold text-slate-400">{roleLabel[user?.role || "cashier"]}</div>
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-black text-zinc-100">{user?.name}</p>
+              <p className="text-[10px] font-bold text-zinc-500">{roleLabel[user?.role || "cashier"]}</p>
             </div>
-            <div className="w-px h-6 bg-slate-200 mx-1" />
             <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 text-sm font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-all"
+              onClick={() => { logout(); router.replace("/login"); }}
+              className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
+              title="خروج"
             >
               <LogOut className="w-4 h-4" />
-              خروج
             </button>
           </div>
         </div>
 
+        {/* Hero */}
+        <div className="mb-8 sm:mb-10">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-violet-400" />
+            <span className="text-xs font-bold text-violet-400 uppercase tracking-widest">لوحة التحكم</span>
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-black mb-2">
+            <span className="gradient-text">{greeting}، {user?.name?.split(" ")[0]}</span>
+          </h1>
+          <p className="text-zinc-500 font-semibold text-sm sm:text-base">اختر القسم للبدء</p>
+        </div>
+
+        {/* Bento grid */}
         <div
-          className={`grid gap-4 sm:gap-5 animate-stagger ${
-            visibleModules.length === 1 ? "grid-cols-1 max-w-sm mx-auto" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          className={`grid gap-3 sm:gap-4 animate-stagger ${
+            visibleModules.length <= 2
+              ? "grid-cols-1 sm:grid-cols-2 max-w-2xl"
+              : "grid-cols-2 lg:grid-cols-3"
           }`}
         >
-          {visibleModules.map((mod) => (
-            <Link key={mod.href} href={mod.href} className="group outline-none">
-              <div className="module-card flex items-center gap-4">
-                <div
-                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${mod.accent} shadow-lg flex items-center justify-center shrink-0 group-hover:scale-105 group-active:scale-95 transition-transform duration-300`}
-                >
-                  <mod.icon className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+          {visibleModules.map((mod, i) => (
+            <Link
+              key={mod.href}
+              href={mod.href}
+              className={`group outline-none ${i === 0 && visibleModules.length > 3 ? "col-span-2 lg:col-span-1" : ""}`}
+            >
+              <div className={`bento-tile ${i === 0 ? "bento-tile-lg" : ""} group-hover:shadow-xl ${mod.glow}`}>
+                <div className="flex items-start justify-between">
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${mod.iconBg} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                    <mod.icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                  </div>
+                  <ArrowLeft className="w-5 h-5 text-zinc-600 group-hover:text-violet-400 group-hover:-translate-x-1 transition-all" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-black text-lg sm:text-xl text-slate-900 mb-0.5">{mod.title}</div>
-                  <div className="text-xs sm:text-[13px] font-medium text-slate-400 line-clamp-2">{mod.desc}</div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-black text-zinc-100 mb-1">{mod.title}</h2>
+                  <p className="text-xs sm:text-sm text-zinc-500 font-medium">{mod.desc}</p>
                 </div>
-                <ChevronLeft className="w-5 h-5 text-slate-300 group-hover:text-blue-500 group-hover:-translate-x-1 transition-all shrink-0" />
               </div>
             </Link>
           ))}
         </div>
 
-        <p className="text-center text-xs text-slate-400 mt-8 font-bold">
+        <p className="text-center text-xs text-zinc-600 mt-10 font-medium">
           ماركت أبناء سوهاج &copy; {new Date().getFullYear()}
         </p>
       </div>

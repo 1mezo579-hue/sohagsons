@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import { formatPrice } from "@/lib/utils";
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
 import {
-  ArrowRight, Plus, Package, AlertTriangle, Search,
+  Plus, Package, AlertTriangle, Search,
   TrendingUp, TrendingDown, Edit2, Trash2, X, Save,
   Boxes, Layers, Download, Upload, Trash, Eye, EyeOff
 } from "lucide-react";
@@ -355,56 +356,31 @@ export default function InventoryPage() {
   const totalStockValue = products.reduce((s, p) => s + p.stock * p.costPrice, 0);
   const lowStockCount = lowStockProducts.length;
 
-  if (!isChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!isChecked) return <LoadingScreen accent="emerald" />;
 
   return (
-    <div className="min-h-screen text-slate-800 font-sans selection:bg-blue-500/30">
-      {/* Dynamic Animated Header */}
-      <header className="bg-white/80 backdrop-blur-2xl border-b border-white/50 px-6 py-5 flex items-center justify-between sticky top-0 z-10 shadow-[0_4px_40px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-5">
-          <Link href="/" className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:shadow-md transition-all hover:scale-105 active:scale-95">
-            <ArrowRight className="w-6 h-6" />
-          </Link>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-[1.2rem] bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center shadow-xl shadow-blue-500/30 animate-pulse" style={{animationDuration: '3s'}}>
-              <Package className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-purple-700 tracking-tight">إدارة المخزون الذكية</h1>
-              <p className="text-sm font-bold text-slate-500 tracking-wide mt-1">منتجات، استيراد/تصدير، تقارير الجرد</p>
-            </div>
+    <div className="min-h-screen">
+      <PageHeader
+        title="إدارة المخزون"
+        subtitle="منتجات، استيراد/تصدير، تقارير الجرد"
+        icon={Package}
+        accent="emerald"
+        actions={
+          <div className="hidden md:flex items-center gap-2">
+            <button onClick={() => fileInputRef.current?.click()} className="btn-secondary flex items-center gap-2 !py-2 !px-3 text-sm">
+              <Upload className="w-4 h-4" />
+              استيراد
+            </button>
+            <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx, .xls" className="hidden" />
+            <button onClick={handleExport} className="btn-secondary flex items-center gap-2 !py-2 !px-3 text-sm">
+              <Download className="w-4 h-4" />
+              تصدير
+            </button>
           </div>
-        </div>
-        
-        {/* Quick Excel Action Buttons */}
-        <div className="hidden md:flex items-center gap-3">
-          <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-emerald-100 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 rounded-2xl transition-all shadow-sm font-bold hover:-translate-y-1">
-            <Upload className="w-5 h-5" />
-            استيراد
-          </button>
-          <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx, .xls" className="hidden" />
+        }
+      />
 
-          <button onClick={handleExport} className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-blue-100 text-blue-700 hover:bg-blue-50 hover:border-blue-300 rounded-2xl transition-all shadow-sm font-bold hover:-translate-y-1">
-            <Download className="w-5 h-5" />
-            تصدير
-          </button>
-          
-          <div className="w-px h-8 bg-slate-200 mx-1"></div>
-
-          <div className="flex flex-col items-end px-2">
-            <span className="text-sm font-black text-slate-900">{user?.name}</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">المشرف</span>
-          </div>
-        </div>
-      </header>
-
-      <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-8 animate-fade-in relative z-0">
+      <div className="page-content max-w-[1400px] space-y-8 animate-fade-in">
         
         {/* KPI Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

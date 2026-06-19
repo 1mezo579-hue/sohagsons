@@ -469,7 +469,7 @@ export default function CashierPage() {
         title="كاشير البيع"
         subtitle="ماركت أبناء سوهاج"
         icon={ShoppingCart}
-        accent="blue"
+        accent="violet"
         actions={
           <>
             <div className="hidden md:flex flex-col items-end">
@@ -488,7 +488,7 @@ export default function CashierPage() {
       />
 
       {/* Tabs Bar */}
-      <div className="bg-white/70 backdrop-blur border-b border-slate-200/80 px-4 sm:px-6 py-2.5 flex items-center justify-between no-print shadow-sm overflow-x-auto gap-2 scrollbar-none z-10 shrink-0">
+      <div className="bg-zinc-900/60 backdrop-blur border-b border-white/5 px-4 sm:px-6 py-2.5 flex items-center justify-between no-print shadow-sm overflow-x-auto gap-2 scrollbar-none z-10 shrink-0">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
           {cart.carts.map((c) => {
             const isActive = cart.activeCartId === c.id;

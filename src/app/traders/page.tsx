@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import toast from "react-hot-toast";
 import { formatPrice, formatDate } from "@/lib/utils";
 import {
-  ArrowRight, Plus, Contact, Search, FileText, Package, X,
+  Plus, Contact, Search, FileText, Package, X,
   Banknote, History, Phone, Building2
 } from "lucide-react";
 
@@ -275,13 +276,7 @@ export default function TradersPage() {
     fetchTraderHistory(trader.id);
   };
 
-  if (!isChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="w-10 h-10 border-4 border-slate-800 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!isChecked) return <LoadingScreen accent="violet" />;
 
   const filtered = traders.filter(
     (t) =>
@@ -293,32 +288,21 @@ export default function TradersPage() {
   const remainingPreview = Math.max(0, (parseFloat(invoiceForm.total) || itemsTotal) - (parseFloat(invoiceForm.paid) || 0));
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-slate-200">
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
-            <ArrowRight className="w-6 h-6" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center shadow-lg shadow-slate-800/20">
-              <Contact className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">التجار والموردين</h1>
-              <p className="text-sm text-slate-500 font-medium">إدارة الحسابات وفواتير الشراء</p>
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowTraderForm(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl transition-all shadow-sm font-bold"
-        >
-          <Plus className="w-5 h-5" />
-          تاجر جديد
-        </button>
-      </header>
+    <div className="min-h-screen">
+      <PageHeader
+        title="التجار والموردين"
+        subtitle="إدارة الحسابات وفواتير الشراء"
+        icon={Contact}
+        accent="slate"
+        actions={
+          <button onClick={() => setShowTraderForm(true)} className="btn-primary flex items-center gap-2 !py-2 !px-4 text-sm">
+            <Plus className="w-4 h-4" />
+            تاجر جديد
+          </button>
+        }
+      />
 
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="page-content space-y-6">
         <div className="relative max-w-md">
           <input
             type="text"

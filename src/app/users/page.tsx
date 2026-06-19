@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import toast from "react-hot-toast";
 import {
-  ArrowRight, Plus, Users, Shield, UserCog, Trash2,
+  Plus, Users, Shield, UserCog, Trash2,
   Edit2, X, Save, Crown, User, Eye, Lock, CheckCircle2
 } from "lucide-react";
 
@@ -199,51 +200,33 @@ export default function UsersPage() {
     setForm({ name: "", username: "", password: "", role: "cashier" });
   };
 
-  if (!isChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!isChecked) return <LoadingScreen accent="violet" />;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-rose-200">
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
-            <ArrowRight className="w-6 h-6" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
-              <Users className="w-6 h-6 text-white" />
+    <div className="min-h-screen">
+      <PageHeader
+        title="إدارة المستخدمين"
+        subtitle="تحكم في الصلاحيات وفرق العمل"
+        icon={Users}
+        accent="violet"
+        actions={
+          <>
+            <div className="hidden md:flex flex-col items-end px-1">
+              <span className="text-sm font-bold text-zinc-200">{user?.name}</span>
+              <span className="text-[10px] font-bold text-zinc-500 uppercase">{user?.role === "admin" ? "مدير" : "كاشير"}</span>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">إدارة المستخدمين</h1>
-              <p className="text-sm font-medium text-slate-500 mt-0.5">تحكم كامل في الصلاحيات وفرق العمل</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex flex-col items-end px-2">
-            <span className="text-sm font-bold text-slate-900">{user?.name}</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user?.role === "admin" ? "مدير" : "كاشير"}</span>
-          </div>
-          <button
-            onClick={() => {
-              setEditingUser(null);
-              resetForm();
-              setShowForm(true);
-            }}
-            className="flex items-center gap-2 px-5 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-all shadow-[0_4px_14px_0_rgba(225,29,72,0.39)] hover:-translate-y-0.5 text-[15px] font-bold"
-          >
-            <Plus className="w-5 h-5" />
-            مستخدم جديد
-          </button>
-        </div>
-      </header>
+            <button
+              onClick={() => { setEditingUser(null); resetForm(); setShowForm(true); }}
+              className="btn-primary flex items-center gap-2 !py-2 !px-4 text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              مستخدم جديد
+            </button>
+          </>
+        }
+      />
 
-      <div className="p-6 max-w-7xl mx-auto space-y-8 animate-fade-in">
+      <div className="page-content space-y-8 animate-fade-in">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <StatCard title="إجمالي المستخدمين" value={users.length.toString()} icon={Users} color="text-blue-600" bg="bg-blue-50" />
