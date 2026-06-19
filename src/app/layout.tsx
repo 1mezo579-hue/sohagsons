@@ -1,10 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "أبناء سوهاج - نظام الكاشير",
   description: "نظام إدارة سوبر ماركت أبناء سوهاج",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2563eb",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -14,15 +20,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ar" dir="rtl">
-      <body>
+      <body className="page-bg">
         {children}
-        <Toaster 
-          position="top-left" 
+        <Toaster
+          position="top-left"
           containerClassName="no-print"
           toastOptions={{
+            duration: 2500,
             style: {
               direction: "rtl",
-              fontFamily: "system-ui, sans-serif",
+              fontFamily: "Tajawal, system-ui, sans-serif",
+              borderRadius: "14px",
+              padding: "12px 16px",
+              fontWeight: 700,
+              boxShadow: "0 8px 32px rgba(15, 23, 42, 0.12)",
             },
           }}
         />

@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { formatPrice } from "@/lib/utils";
 import { printReceipt, toReceiptInvoice } from "@/lib/receiptPrint";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import toast from "react-hot-toast";
 import {
   Search, Trash2, Minus, Plus, Printer, RotateCcw,
-  ArrowRight, CreditCard, Banknote, ScanLine,
+  CreditCard, Banknote, ScanLine,
   X, Package, Weight, Clock, Phone, CheckCircle2, ChevronDown, ChevronUp
 } from "lucide-react";
 
@@ -267,15 +268,9 @@ export default function ReturnsPage() {
     }
   };
 
-  const directPrint = async (invoice: any) => {
+  const directPrint = (invoice: any) => {
     if (!invoice) return;
-    const loadingToast = toast.loading("جاري طباعة إيصال المرتجع...");
-    try {
-      await printReceipt(toReceiptInvoice({ ...invoice, orderType: "return" }));
-      toast.success("تمت الطباعة بنجاح", { id: loadingToast });
-    } catch {
-      toast.error("فشل في الطباعة — تأكد من السماح بالنوافذ المنبثقة", { id: loadingToast });
-    }
+    printReceipt(toReceiptInvoice({ ...invoice, orderType: "return" }));
   };
 
   // Hotkeys Support
@@ -289,46 +284,31 @@ export default function ReturnsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [cartItems, paymentType, selectedCustomer, user]);
 
-  if (!isChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!isChecked) return <LoadingScreen accent="rose" />;
 
   return (
-    <div className="min-h-screen lg:h-screen bg-[#f8fafc] flex flex-col animate-fade-in text-slate-800">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between no-print shadow-sm z-10">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
-            <ArrowRight className="w-6 h-6" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-rose-600 flex items-center justify-center shadow-lg shadow-rose-500/20">
-              <RotateCcw className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">مرتجع المبيعات</h1>
-              <p className="text-sm text-slate-500 font-medium">إرجاع بضائع للمخزن وخصم الإيراد</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex flex-col items-end">
-            <span className="text-sm font-bold text-slate-900">{user?.name}</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user?.role === "admin" ? "مدير" : "كاشير"}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {["F2 باركود", "F3 بحث", "F4 تأكيد"].map((k) => (
-              <span key={k} className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600">
-                {k}
+    <div className="min-h-screen lg:h-screen flex flex-col animate-fade-in text-slate-800">
+      <PageHeader
+        title="مرتجع المبيعات"
+        subtitle="إرجاع بضائع للمخزن وخصم الإيراد"
+        icon={RotateCcw}
+        accent="rose"
+        actions={
+          <>
+            <div className="hidden md:flex flex-col items-end">
+              <span className="text-sm font-bold text-slate-900">{user?.name}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                {user?.role === "admin" ? "مدير" : "كاشير"}
               </span>
-            ))}
-          </div>
-        </div>
-      </header>
+            </div>
+            <div className="hidden lg:flex items-center gap-1.5">
+              {["F2 باركود", "F3 بحث", "F4 تأكيد"].map((k) => (
+                <span key={k} className="hotkey-badge">{k}</span>
+              ))}
+            </div>
+          </>
+        }
+      />
 
       <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 p-4 md:p-6 lg:overflow-hidden">
         {/* Left: Products list */}

@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { formatPrice, formatDate, toLocalDateKey } from "@/lib/utils";
 import toast from "react-hot-toast";
-import { openReceiptPrintWindow, toReceiptInvoice } from "@/lib/receiptPrint";
+import { printReceipt, toReceiptInvoice } from "@/lib/receiptPrint";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import {
-  ArrowRight, TrendingUp, TrendingDown, Calendar,
+  TrendingUp, TrendingDown, Calendar,
   DollarSign, Package, ShoppingCart, Users, Clock,
   BarChart3, PieChart, Activity, Layers, Eye, X, Printer, RotateCcw, Phone
 } from "lucide-react";
@@ -175,70 +176,48 @@ export default function ReportsPage() {
     custom: "فترة مخصصة",
   };
 
-  if (!isChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!isChecked) return <LoadingScreen accent="amber" />;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-amber-200">
-      {/* Header */}
-      <header className={`bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm ${selectedInvoice ? 'no-print' : ''}`}>
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
-            <ArrowRight className="w-6 h-6" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-              <BarChart3 className="w-6 h-6 text-white" />
+    <div className="min-h-screen text-slate-800 font-sans">
+      <PageHeader
+        title="التقارير والإحصائيات"
+        subtitle="نظرة شاملة على أداء المتجر"
+        icon={BarChart3}
+        accent="amber"
+        className={selectedInvoice ? "no-print" : ""}
+        actions={
+          <>
+            <div className="hidden md:flex flex-col items-end px-1">
+              <span className="text-sm font-bold text-slate-900">{user?.name}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                {user?.role === "admin" ? "مدير" : "كاشير"}
+              </span>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">التقارير والإحصائيات</h1>
-              <p className="text-sm text-slate-500 font-medium">نظرة شاملة على أداء المتجر</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Date Filter & User */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="hidden md:flex flex-col items-end px-2">
-            <span className="text-sm font-bold text-slate-900">{user?.name}</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user?.role === "admin" ? "مدير" : "كاشير"}</span>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 shadow-sm">
-            {(["today", "week", "month", "custom"] as const).map((range) => (
-              <button
-                key={range}
-                onClick={() => setDateRange(range)}
-                className={`px-3 md:px-5 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-bold transition-all ${
-                  dateRange === range
-                    ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                {dateLabel[range]}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1 bg-slate-100/80 border border-slate-200/80 rounded-xl p-1">
+                {(["today", "week", "month", "custom"] as const).map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => setDateRange(range)}
+                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                      dateRange === range ? "nav-tab-active" : "nav-tab !px-3 !py-2"
+                    }`}
+                  >
+                    {dateLabel[range]}
+                  </button>
+                ))}
+              </div>
+              <button onClick={fetchInvoices} className="btn-secondary !py-2 !px-4 text-sm">
+                تحديث
               </button>
-            ))}
-          </div>
-          
-          <button
-            onClick={fetchInvoices}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors no-print"
-          >
-            تحديث
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors shadow-lg shadow-slate-800/20 no-print"
-          >
-            طباعة التقرير
-          </button>
-        </div>
-      </header>
+              <button onClick={() => window.print()} className="btn-primary !py-2 !px-4 text-sm !from-slate-800 !to-slate-900">
+                طباعة التقرير
+              </button>
+            </div>
+          </>
+        }
+      />
 
       {dateRange === "custom" && (
         <div className="px-6 py-4 bg-white border-b border-slate-200 flex flex-wrap items-center gap-4 animate-fade-in shadow-sm no-print">
@@ -641,10 +620,7 @@ export default function ReportsPage() {
                 <p className="text-sm font-bold text-slate-500 mt-1">{formatDate(selectedInvoice.createdAt)} • الكاشير: {selectedInvoice.user?.name || "-"}</p>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => {
-                  const ok = openReceiptPrintWindow(toReceiptInvoice(selectedInvoice, { isReprint: true }));
-                  if (!ok) alert("فشل فتح نافذة الطباعة — تأكد من السماح بالنوافذ المنبثقة");
-                }} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors">
+                <button onClick={() => printReceipt(toReceiptInvoice(selectedInvoice, { isReprint: true }))} className="btn-primary !py-2 !px-4 text-sm flex items-center gap-2">
                   <Printer className="w-4 h-4" />
                   طباعة
                 </button>

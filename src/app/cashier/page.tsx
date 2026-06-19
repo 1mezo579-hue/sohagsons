@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useCartStore } from "@/hooks/useCartStore";
 import { formatPrice, generateInvoiceNo } from "@/lib/utils";
 import { printReceipt, toReceiptInvoice } from "@/lib/receiptPrint";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import { CartItem } from "@/types";
 import toast from "react-hot-toast";
 import {
   Search, Trash2, Minus, Plus, Printer, ShoppingCart,
-  ArrowRight, CreditCard, Banknote, Percent, ScanLine,
+  CreditCard, Banknote, Percent, ScanLine,
   X, Package, Weight, Clock, Phone, Edit2, Truck
 } from "lucide-react";
 
@@ -368,19 +369,13 @@ export default function CashierPage() {
     }
   };
 
-  const directPrint = async (invoice: any) => {
+  const directPrint = (invoice: any) => {
     if (!invoice) return;
     const receipt = {
       ...invoice,
       riderChange: invoice.riderChange ?? (cart.orderType === "delivery" ? pilotChange : 0),
     };
-    const loadingToast = toast.loading("جاري الطباعة...");
-    try {
-      await printReceipt(toReceiptInvoice(receipt));
-      toast.success("تمت الطباعة بنجاح", { id: loadingToast });
-    } catch {
-      toast.error("فشل في الطباعة — تأكد من السماح بالنوافذ المنبثقة", { id: loadingToast });
-    }
+    printReceipt(toReceiptInvoice(receipt));
   };
 
   const printReceiptBtn = () => {
@@ -466,49 +461,34 @@ export default function CashierPage() {
     };
   }, [allProducts, cart]);
 
-  if (!isChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!isChecked) return <LoadingScreen />;
 
   return (
-    <div className="min-h-screen lg:h-screen bg-[#f8fafc] flex flex-col animate-fade-in text-slate-800">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between no-print shadow-sm z-10">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
-            <ArrowRight className="w-6 h-6" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <ShoppingCart className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">كاشير البيع</h1>
-              <p className="text-sm text-slate-500 font-medium">ماركت أبناء سوهاج</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex flex-col items-end">
-            <span className="text-sm font-bold text-slate-900">{user?.name}</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user?.role === "admin" ? "مدير" : "كاشير"}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {["F2 باركود", "F3 بحث", "F4 دفع"].map((k) => (
-              <span key={k} className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600">
-                {k}
+    <div className="min-h-screen lg:h-screen flex flex-col animate-fade-in text-slate-800">
+      <PageHeader
+        title="كاشير البيع"
+        subtitle="ماركت أبناء سوهاج"
+        icon={ShoppingCart}
+        accent="blue"
+        actions={
+          <>
+            <div className="hidden md:flex flex-col items-end">
+              <span className="text-sm font-bold text-slate-900">{user?.name}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                {user?.role === "admin" ? "مدير" : "كاشير"}
               </span>
-            ))}
-          </div>
-        </div>
-      </header>
+            </div>
+            <div className="hidden lg:flex items-center gap-1.5">
+              {["F2 باركود", "F3 بحث", "F4 دفع"].map((k) => (
+                <span key={k} className="hotkey-badge">{k}</span>
+              ))}
+            </div>
+          </>
+        }
+      />
 
       {/* Tabs Bar */}
-      <div className="bg-white border-b border-slate-200 px-6 py-2.5 flex items-center justify-between no-print shadow-sm overflow-x-auto gap-2 scrollbar-none z-10 shrink-0">
+      <div className="bg-white/70 backdrop-blur border-b border-slate-200/80 px-4 sm:px-6 py-2.5 flex items-center justify-between no-print shadow-sm overflow-x-auto gap-2 scrollbar-none z-10 shrink-0">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
           {cart.carts.map((c) => {
             const isActive = cart.activeCartId === c.id;

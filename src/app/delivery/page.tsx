@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { formatPrice } from "@/lib/utils";
 import { printReceipt, toReceiptInvoice } from "@/lib/receiptPrint";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import toast from "react-hot-toast";
 import {
-  ArrowRight, Truck, Phone, MapPin, Calendar, Clock,
+  Truck, Phone, MapPin, Calendar, Clock,
   CheckCircle2, AlertCircle, ShoppingBag, Printer, Search,
   ChevronDown, ChevronUp, Bike, Check
 } from "lucide-react";
@@ -52,7 +53,6 @@ export default function DeliveryPage() {
   
   // States for rider changes and printing states
   const [riderChanges, setRiderChanges] = useState<Record<number, string>>({});
-  const [printingIds, setPrintingIds] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     fetchInvoices();
@@ -102,20 +102,10 @@ export default function DeliveryPage() {
     setRiderChanges(prev => ({ ...prev, [invoiceId]: value }));
   };
 
-  const printOrder = async (invoice: Invoice) => {
-    setPrintingIds(prev => ({ ...prev, [invoice.id]: true }));
+  const printOrder = (invoice: Invoice) => {
     const riderChangeVal = parseFloat(riderChanges[invoice.id] || "0");
-    const receipt = toReceiptInvoice(invoice, { riderChange: riderChangeVal });
-
-    try {
-      toast.loading("جاري الطباعة...", { id: `print-${invoice.id}` });
-      await printReceipt(receipt);
-      toast.success("تم إرسال الفاتورة للطابعة بنجاح 🎉", { id: `print-${invoice.id}` });
-    } catch (error: any) {
-      toast.error(error?.message || "فشل في الطباعة", { id: `print-${invoice.id}` });
-    } finally {
-      setPrintingIds(prev => ({ ...prev, [invoice.id]: false }));
-    }
+    printReceipt(toReceiptInvoice(invoice, { riderChange: riderChangeVal }));
+    toast.success("تم إرسال الفاتورة للطباعة");
   };
 
   const filteredInvoices = invoices.filter(inv => {
@@ -130,40 +120,24 @@ export default function DeliveryPage() {
     return matchesSearch && status === filterStatus;
   });
 
-  if (!isChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!isChecked) return <LoadingScreen accent="cyan" />;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-blue-500/30">
-      {/* Premium Header */}
-      <header className="bg-white/80 backdrop-blur-2xl border-b border-white/50 px-6 py-5 flex items-center justify-between sticky top-0 z-10 shadow-[0_4px_40px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-5">
-          <Link href="/" className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:shadow-md transition-all hover:scale-105 active:scale-95">
-            <ArrowRight className="w-6 h-6" />
-          </Link>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-[1.2rem] bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-xl shadow-cyan-500/30 animate-pulse" style={{ animationDuration: '3s' }}>
-              <Truck className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-600 to-blue-600 tracking-tight">طلبات الدليفري والتوصيل</h1>
-              <p className="text-sm font-bold text-slate-500 tracking-wide mt-1">تتبع الحالات، عناوين العملاء، وطباعة فواتير التوصيل</p>
-            </div>
+    <div className="min-h-screen text-slate-800 font-sans">
+      <PageHeader
+        title="طلبات الدليفري"
+        subtitle="تتبع الحالات وطباعة فواتير التوصيل"
+        icon={Truck}
+        accent="cyan"
+        actions={
+          <div className="bg-white/90 shadow-sm border border-slate-200/80 rounded-xl px-4 py-2 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-sm font-black text-slate-700">
+              نشط: {invoices.filter((inv) => statuses[inv.id] !== "delivered").length}
+            </span>
           </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="bg-white shadow-sm border border-slate-100 rounded-xl px-4 py-2 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-            <span className="text-sm font-black text-slate-700">دليفري نشط: {invoices.filter(inv => statuses[inv.id] !== "delivered").length}</span>
-          </div>
-        </div>
-      </header>
+        }
+      />
 
       <div className="p-6 md:p-8 max-w-[1200px] mx-auto space-y-6">
         
@@ -316,19 +290,10 @@ export default function DeliveryPage() {
                     <div className="flex gap-2 w-full lg:w-auto">
                       <button
                         onClick={() => printOrder(invoice)}
-                        disabled={printingIds[invoice.id]}
-                        className={`p-3.5 rounded-2xl transition-all shadow-sm flex items-center justify-center ${
-                          printingIds[invoice.id]
-                            ? "bg-blue-50 text-blue-600 cursor-not-allowed"
-                            : "bg-slate-100 hover:bg-slate-200 text-slate-600"
-                        }`}
+                        className="p-3.5 rounded-2xl transition-all shadow-sm flex items-center justify-center bg-slate-100 hover:bg-blue-100 hover:text-blue-600 text-slate-600"
                         title="طباعة إيصال التوصيل"
                       >
-                        {printingIds[invoice.id] ? (
-                          <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Printer className="w-5 h-5" />
-                        )}
+                        <Printer className="w-5 h-5" />
                       </button>
  
                       {/* Status quick cycle buttons */}

@@ -4,7 +4,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import { ShoppingCart, Package, BarChart3, Users, Store, ChevronLeft, LogOut, Wallet, Truck, Contact, RotateCcw } from "lucide-react";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageBackground } from "@/components/PageBackground";
+import {
+  ShoppingCart,
+  Package,
+  BarChart3,
+  Users,
+  Store,
+  ChevronLeft,
+  LogOut,
+  Wallet,
+  Truck,
+  Contact,
+  RotateCcw,
+  Settings,
+} from "lucide-react";
 
 const ALL_MODULES = [
   {
@@ -12,8 +27,7 @@ const ALL_MODULES = [
     desc: "إتمام عمليات البيع وإصدار الفواتير",
     icon: ShoppingCart,
     href: "/cashier",
-    bg: "from-blue-600 to-blue-700",
-    shadow: "shadow-blue-500/30",
+    accent: "from-blue-600 to-blue-700 shadow-blue-500/30",
     roles: ["admin", "manager", "cashier"],
   },
   {
@@ -21,8 +35,7 @@ const ALL_MODULES = [
     desc: "إدارة المنتجات والأقسام والمخزون",
     icon: Package,
     href: "/inventory",
-    bg: "from-emerald-500 to-teal-600",
-    shadow: "shadow-emerald-500/30",
+    accent: "from-emerald-500 to-teal-600 shadow-emerald-500/30",
     roles: ["admin", "manager"],
   },
   {
@@ -30,8 +43,7 @@ const ALL_MODULES = [
     desc: "تقارير المبيعات والأرباح والتحليلات",
     icon: BarChart3,
     href: "/reports",
-    bg: "from-amber-500 to-orange-500",
-    shadow: "shadow-amber-500/30",
+    accent: "from-amber-500 to-orange-500 shadow-amber-500/30",
     roles: ["admin", "manager"],
   },
   {
@@ -39,8 +51,7 @@ const ALL_MODULES = [
     desc: "إدارة العملاء ونقاط الولاء",
     icon: Users,
     href: "/customers",
-    bg: "from-indigo-500 to-purple-600",
-    shadow: "shadow-indigo-500/30",
+    accent: "from-indigo-500 to-purple-600 shadow-indigo-500/30",
     roles: ["admin", "manager", "cashier"],
   },
   {
@@ -48,8 +59,7 @@ const ALL_MODULES = [
     desc: "متابعة وتوصيل طلبات الدليفري النشطة",
     icon: Truck,
     href: "/delivery",
-    bg: "from-cyan-500 to-blue-600",
-    shadow: "shadow-cyan-500/30",
+    accent: "from-cyan-500 to-blue-600 shadow-cyan-500/30",
     roles: ["admin", "manager", "cashier"],
   },
   {
@@ -57,8 +67,7 @@ const ALL_MODULES = [
     desc: "تسجيل المرتجعات وإعادتها للمخزون",
     icon: RotateCcw,
     href: "/returns",
-    bg: "from-rose-600 to-rose-700",
-    shadow: "shadow-rose-500/30",
+    accent: "from-rose-600 to-rose-700 shadow-rose-500/30",
     roles: ["admin", "manager", "cashier"],
   },
   {
@@ -66,8 +75,7 @@ const ALL_MODULES = [
     desc: "تسجيل الإيجار والكهرباء والرواتب",
     icon: Wallet,
     href: "/expenses",
-    bg: "from-rose-500 to-red-600",
-    shadow: "shadow-red-500/30",
+    accent: "from-rose-500 to-red-600 shadow-red-500/30",
     roles: ["admin", "manager"],
   },
   {
@@ -75,17 +83,15 @@ const ALL_MODULES = [
     desc: "حسابات الموردين وفواتير الشراء",
     icon: Contact,
     href: "/traders",
-    bg: "from-slate-700 to-slate-900",
-    shadow: "shadow-slate-700/30",
+    accent: "from-slate-700 to-slate-900 shadow-slate-700/30",
     roles: ["admin", "manager"],
   },
   {
     title: "الإعدادات",
     desc: "إدارة المستخدمين والصلاحيات",
-    icon: Users,
+    icon: Settings,
     href: "/users",
-    bg: "from-rose-500 to-pink-600",
-    shadow: "shadow-rose-500/30",
+    accent: "from-violet-500 to-purple-600 shadow-violet-500/30",
     roles: ["admin"],
   },
 ];
@@ -106,39 +112,23 @@ export default function Home() {
     router.replace("/login");
   };
 
-  if (!isChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (!isChecked) return <LoadingScreen />;
 
-  // Filter modules based on user role
-  const visibleModules = ALL_MODULES.filter(
-    (m) => user && m.roles.includes(user.role)
-  );
+  const visibleModules = ALL_MODULES.filter((m) => user && m.roles.includes(user.role));
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background blobs */}
-      <div className="absolute inset-0 overflow-hidden -z-10 pointer-events-none">
-        <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[120px]" />
-        <div className="absolute top-[40%] -left-[10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10 blur-[120px]" />
-        <div className="absolute bottom-[10%] right-[20%] w-[30%] h-[30%] rounded-full bg-amber-300/8 blur-[100px]" />
-      </div>
+    <main className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      <PageBackground />
 
-      <div className="w-full max-w-2xl animate-fade-in">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 mx-auto rounded-3xl bg-white shadow-xl shadow-slate-200/50 flex items-center justify-center mb-5 border border-slate-100">
-            <Store className="w-10 h-10 text-slate-800" />
+      <div className="w-full max-w-3xl animate-fade-in relative z-10">
+        <div className="text-center mb-8 sm:mb-10">
+          <div className="w-[4.5rem] h-[4.5rem] sm:w-20 sm:h-20 mx-auto rounded-[1.25rem] bg-white/90 backdrop-blur shadow-soft flex items-center justify-center mb-5 border border-white">
+            <Store className="w-9 h-9 sm:w-10 sm:h-10 text-blue-700" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-2">أبناء سوهاج</h1>
-          <p className="text-base text-slate-400 font-bold mb-6">نظام نقطة البيع وإدارة المخزن</p>
+          <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight mb-2">أبناء سوهاج</h1>
+          <p className="text-sm sm:text-base text-slate-500 font-bold mb-6">نظام نقطة البيع وإدارة المخزن</p>
 
-          {/* User Info Bar */}
-          <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl px-5 py-3 shadow-sm">
+          <div className="inline-flex items-center gap-3 glass-panel py-3 px-4 sm:px-5 !rounded-2xl">
             <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
               <Users className="w-4 h-4 text-blue-600" />
             </div>
@@ -149,7 +139,7 @@ export default function Home() {
             <div className="w-px h-6 bg-slate-200 mx-1" />
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 text-sm font-bold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-all"
+              className="flex items-center gap-1.5 text-sm font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-all"
             >
               <LogOut className="w-4 h-4" />
               خروج
@@ -157,26 +147,31 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Modules Grid */}
-        <div className={`grid gap-5 ${visibleModules.length === 1 ? "grid-cols-1 max-w-sm mx-auto" : "grid-cols-1 sm:grid-cols-2"}`}>
+        <div
+          className={`grid gap-4 sm:gap-5 animate-stagger ${
+            visibleModules.length === 1 ? "grid-cols-1 max-w-sm mx-auto" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          }`}
+        >
           {visibleModules.map((mod) => (
             <Link key={mod.href} href={mod.href} className="group outline-none">
-              <div className="bg-white/80 backdrop-blur-xl rounded-[1.75rem] p-6 border border-white shadow-[0_4px_20px_rgb(0,0,0,0.04)] hover:shadow-2xl hover:shadow-slate-200/60 transition-all duration-300 hover:-translate-y-2 flex items-center gap-5">
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${mod.bg} shadow-lg ${mod.shadow} flex items-center justify-center shrink-0 group-hover:scale-110 group-active:scale-95 transition-transform duration-300`}>
-                  <mod.icon className="w-8 h-8 text-white" />
+              <div className="module-card flex items-center gap-4">
+                <div
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${mod.accent} shadow-lg flex items-center justify-center shrink-0 group-hover:scale-105 group-active:scale-95 transition-transform duration-300`}
+                >
+                  <mod.icon className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-black text-xl text-slate-900 mb-0.5">{mod.title}</div>
-                  <div className="text-[13px] font-medium text-slate-400 truncate">{mod.desc}</div>
+                  <div className="font-black text-lg sm:text-xl text-slate-900 mb-0.5">{mod.title}</div>
+                  <div className="text-xs sm:text-[13px] font-medium text-slate-400 line-clamp-2">{mod.desc}</div>
                 </div>
-                <ChevronLeft className="w-6 h-6 text-slate-300 group-hover:text-slate-600 group-hover:-translate-x-1 transition-all shrink-0" />
+                <ChevronLeft className="w-5 h-5 text-slate-300 group-hover:text-blue-500 group-hover:-translate-x-1 transition-all shrink-0" />
               </div>
             </Link>
           ))}
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-8 font-bold">
-          جميع الحقوق محفوظة Design House Alex™ &copy; {new Date().getFullYear()}
+          ماركت أبناء سوهاج &copy; {new Date().getFullYear()}
         </p>
       </div>
     </main>
