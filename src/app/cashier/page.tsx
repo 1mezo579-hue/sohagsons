@@ -1041,9 +1041,9 @@ export default function CashierPage() {
                   setSelectedCustomer(c || null);
                 }}
               >
-                <option value="">{cart.orderType === "delivery" ? "-- اختر العميل --" : "-- زبون طياري (بدون تسجيل) --"}</option>
+                <option value="" className="text-black bg-white">{cart.orderType === "delivery" ? "-- اختر العميل --" : "-- زبون طياري (بدون تسجيل) --"}</option>
                 {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name} - {c.phone}</option>
+                  <option key={c.id} value={c.id} className="text-black bg-white">{c.name} - {c.phone}</option>
                 ))}
               </select>
               {selectedCustomer && cart.orderType === "delivery" && (

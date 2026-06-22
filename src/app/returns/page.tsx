@@ -522,9 +522,9 @@ export default function ReturnsPage() {
                   }}
                   className="bg-transparent border-none outline-none font-bold text-slate-600 text-xs flex-1"
                 >
-                  <option value="">-- اختياري: خصم نقاط لعميل محدد --</option>
+                  <option value="" className="text-black bg-white">-- اختياري: خصم نقاط لعميل محدد --</option>
                   {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
+                    <option key={c.id} value={c.id} className="text-black bg-white">
                       {c.name} ({c.phone})
                     </option>
                   ))}
